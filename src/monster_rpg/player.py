@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel, Field
 
-from monster_rpg.combat.damage_calc import StrategyProfile
+from monster_rpg.combat.strategy import StrategyProfile
 from monster_rpg.config import BASE_ACTION_QUEUE_SLOTS, MAX_TEAM_SIZE
 
 
@@ -23,7 +23,7 @@ class Player(BaseModel):
         action_queue_slots: Number of available action queue slots.
     """
 
-    player_id: str = Field(description="Unique player identifier")
+    player_id: str = Field(min_length=1, description="Unique player identifier")
     username: str = Field(min_length=1, max_length=30)
     level: int = Field(default=1, ge=1)
     experience: int = Field(default=0, ge=0)

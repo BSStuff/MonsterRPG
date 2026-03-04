@@ -27,7 +27,7 @@ class Area(BaseModel):
         description: Text description of the area.
     """
 
-    area_id: str = Field(description="Unique area identifier")
+    area_id: str = Field(min_length=1, description="Unique area identifier")
     name: str = Field(min_length=1, max_length=50)
     difficulty: AreaDifficulty
     recommended_level: int = Field(ge=1, le=100)

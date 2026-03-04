@@ -132,6 +132,11 @@ class TestMonsterSpecies:
         assert species.element == Element.FIRE
         assert species.rarity == Rarity.COMMON
 
+    def test_empty_species_id_rejected(self) -> None:
+        """species_id cannot be empty."""
+        with pytest.raises(ValidationError):
+            _make_species(species_id="")
+
     def test_defaults(self) -> None:
         """learnable_skill_ids should default to empty list."""
         species = _make_species()
@@ -165,6 +170,11 @@ class TestMonster:
         assert mon.monster_id == "mon_001"
         assert mon.level == 1
         assert mon.is_fainted is False
+
+    def test_empty_monster_id_rejected(self) -> None:
+        """monster_id cannot be empty."""
+        with pytest.raises(ValidationError):
+            _make_monster(monster_id="")
 
     def test_defaults(self) -> None:
         """Default values should be applied correctly."""
@@ -222,8 +232,8 @@ class TestMonster:
         effective = mon.effective_stats()
         base = mon.species.base_stats
         expected_scale = 1.0 + 49 * 0.05  # 3.45
-        assert effective.hp == int(base.hp * expected_scale)
-        assert effective.attack == int(base.attack * expected_scale)
+        assert effective.hp == round(base.hp * expected_scale)
+        assert effective.attack == round(base.attack * expected_scale)
 
     def test_effective_stats_level_100(self) -> None:
         """At level 100, stats should scale by 1 + 99*0.05 = 5.95."""
@@ -231,4 +241,4 @@ class TestMonster:
         effective = mon.effective_stats()
         base = mon.species.base_stats
         expected_scale = 1.0 + 99 * 0.05
-        assert effective.hp == int(base.hp * expected_scale)
+        assert effective.hp == round(base.hp * expected_scale)

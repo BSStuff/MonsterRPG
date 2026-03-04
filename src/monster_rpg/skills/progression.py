@@ -32,7 +32,7 @@ class Skill(BaseModel):
         experience: Accumulated skill XP.
     """
 
-    skill_id: str = Field(description="Unique skill identifier")
+    skill_id: str = Field(min_length=1, description="Unique skill identifier")
     name: str = Field(min_length=1, max_length=50)
     skill_type: SkillType
     element: Element

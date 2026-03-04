@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from monster_rpg.combat.damage_calc import StrategyProfile, StrategyType
+from monster_rpg.combat.strategy import StrategyProfile, StrategyType
 from monster_rpg.config import BASE_ACTION_QUEUE_SLOTS
 from monster_rpg.main import main
 from monster_rpg.player import Player
@@ -32,6 +32,11 @@ class TestPlayer:
         player = _make_player()
         assert player.player_id == "player_001"
         assert player.username == "TestHero"
+
+    def test_empty_player_id_rejected(self) -> None:
+        """player_id cannot be empty."""
+        with pytest.raises(ValidationError):
+            _make_player(player_id="")
 
     def test_defaults(self) -> None:
         """Default values should be applied correctly."""

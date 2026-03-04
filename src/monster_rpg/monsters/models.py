@@ -61,7 +61,7 @@ class MonsterSpecies(BaseModel):
         learnable_skill_ids: Skills this species can learn.
     """
 
-    species_id: str = Field(description="Unique species identifier")
+    species_id: str = Field(min_length=1, description="Unique species identifier")
     name: str = Field(min_length=1, max_length=50)
     element: Element
     rarity: Rarity
@@ -88,7 +88,7 @@ class Monster(BaseModel):
         is_fainted: Whether the monster has fainted.
     """
 
-    monster_id: str = Field(description="Unique instance identifier")
+    monster_id: str = Field(min_length=1, description="Unique instance identifier")
     species: MonsterSpecies
     level: int = Field(default=1, ge=1, le=MAX_MONSTER_LEVEL)
     experience: int = Field(default=0, ge=0)
@@ -115,10 +115,10 @@ class Monster(BaseModel):
         scale = 1.0 + (self.level - 1) * 0.05
         base = self.species.base_stats
         return StatBlock(
-            hp=int(base.hp * scale),
-            attack=int(base.attack * scale),
-            defense=int(base.defense * scale),
-            speed=int(base.speed * scale),
-            magic_attack=int(base.magic_attack * scale),
-            magic_defense=int(base.magic_defense * scale),
+            hp=round(base.hp * scale),
+            attack=round(base.attack * scale),
+            defense=round(base.defense * scale),
+            speed=round(base.speed * scale),
+            magic_attack=round(base.magic_attack * scale),
+            magic_defense=round(base.magic_defense * scale),
         )

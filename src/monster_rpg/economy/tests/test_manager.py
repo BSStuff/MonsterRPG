@@ -48,6 +48,11 @@ class TestArea:
         assert area.difficulty == AreaDifficulty.EASY
         assert area.recommended_level == 5
 
+    def test_empty_area_id_rejected(self) -> None:
+        """area_id cannot be empty."""
+        with pytest.raises(ValidationError):
+            _make_area(area_id="")
+
     def test_defaults(self) -> None:
         """Lists should default to empty."""
         area = _make_area()

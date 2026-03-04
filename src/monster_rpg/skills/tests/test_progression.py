@@ -55,6 +55,11 @@ class TestSkill:
         assert skill.accuracy == 90
         assert skill.cooldown == 2.5
 
+    def test_empty_skill_id_rejected(self) -> None:
+        """skill_id cannot be empty."""
+        with pytest.raises(ValidationError):
+            _make_skill(skill_id="")
+
     def test_defaults(self) -> None:
         """Level should default to 1, experience to 0."""
         skill = _make_skill()
