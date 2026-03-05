@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from elements_rpg.api.config import get_settings
-from elements_rpg.api.routers import get_all_routers
+from elements_rpg.api.routers import ALL_ROUTERS
 
 logger = logging.getLogger(__name__)
 
@@ -21,9 +21,8 @@ def create_app() -> FastAPI:
 
     Returns a fully configured FastAPI instance with:
         - CORS middleware from settings
-        - All available domain routers
+        - All available domain routers (including health check)
         - Global exception handlers
-        - Health check endpoint
     """
     settings = get_settings()
 
@@ -31,7 +30,7 @@ def create_app() -> FastAPI:
         title=settings.app_name,
         version=settings.app_version,
         description=(
-            "ElementsRPG Backend API — hybrid active/idle monster survival RPG "
+            "ElementsRPG Backend API -- hybrid active/idle monster survival RPG "
             "with monster collection, skill progression, and convenience monetization."
         ),
         debug=settings.debug,
@@ -39,7 +38,6 @@ def create_app() -> FastAPI:
 
     _register_cors(app)
     _register_exception_handlers(app)
-    _register_health_check(app)
     _register_routers(app)
 
     return app
@@ -115,33 +113,17 @@ def _error_body(code: str, message: str) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# Health check
-# ---------------------------------------------------------------------------
-
-
-def _register_health_check(app: FastAPI) -> None:
-    """Register the GET /health endpoint."""
-    settings = get_settings()
-
-    @app.get("/health", tags=["Health"])
-    async def health_check() -> dict[str, Any]:
-        return {
-            "status": "ok",
-            "service": settings.app_name,
-            "version": settings.app_version,
-            "timestamp": datetime.now(UTC).isoformat(),
-        }
-
-
-# ---------------------------------------------------------------------------
 # Routers
 # ---------------------------------------------------------------------------
 
 
 def _register_routers(app: FastAPI) -> None:
-    """Include all available domain routers from the routers package."""
-    routers = get_all_routers()
-    for router, prefix, tag in routers:
-        app.include_router(router, prefix=prefix, tags=[tag])
+    """Include all domain routers from the routers package.
 
-    logger.info("Registered %d domain routers", len(routers))
+    Each router defines its own prefix and tags via APIRouter(),
+    so no additional prefix/tag overrides are needed here.
+    """
+    for router in ALL_ROUTERS:
+        app.include_router(router)
+
+    logger.info("Registered %d domain routers", len(ALL_ROUTERS))
