@@ -57,12 +57,12 @@ All modules live under `src/elements_rpg/` and need API endpoints:
 - [x] `implementation-agent` | Add FastAPI + uvicorn + httpx + pytest-asyncio to dependencies via `uv add` | complete
 - [x] `implementation-agent` | Create `src/elements_rpg/api/` package with `__init__.py`, `app.py` (FastAPI app factory), and `config.py` (Settings via pydantic-settings, env vars for Supabase URL/keys, Render port, CORS origins) | complete
 - [x] `implementation-agent` | Create base router structure: `src/elements_rpg/api/routers/` with stub routers for all 12 domains (auth, combat, monsters, economy, idle, taming, skills, crafting, save_load, premium, subscriptions, ads) | complete
-- [ ] `implementation-agent` | Set up CORS middleware -- allow Unity WebGL origins (localhost:* for dev, Vercel domain for prod), configurable via env vars | pending
-- [ ] `implementation-agent` | Create global error handling middleware -- structured JSON error responses, map domain exceptions to HTTP status codes | pending
+- [x] `implementation-agent` | Set up CORS middleware -- allow Unity WebGL origins (localhost:* for dev, Vercel domain for prod), configurable via env vars | complete
+- [x] `implementation-agent` | Create global error handling middleware -- structured JSON error responses, map domain exceptions to HTTP status codes | complete
 - [x] `implementation-agent` | Create health check endpoint (`GET /health`) returning service status, version, timestamp | complete
-- [ ] `implementation-agent` | Create Pydantic request/response schemas in `src/elements_rpg/api/schemas/` -- reuse existing models as bases, add API-specific wrappers (pagination, error responses, success envelopes) | pending
-- [ ] `implementation-agent` | Create `src/elements_rpg/api/dependencies.py` -- dependency injection stubs for DB session, current user, service layer access | pending
-- [ ] `review-agent` | Review Phase 1: verify app starts, health check works, all routers registered, CORS configured, error handling returns proper JSON | pending
+- [x] `implementation-agent` | Create Pydantic request/response schemas in `src/elements_rpg/api/schemas.py` -- shared API wrappers (SuccessResponse, ErrorResponse, PaginatedResponse, PaginationParams) | complete
+- [x] `implementation-agent` | Create `src/elements_rpg/api/dependencies.py` -- dependency injection stubs for DB session, current user, game state (Phase 2 implementation) | complete
+- [x] `review-agent` | Review Phase 1: verify app starts, health check works, all routers registered, CORS configured, error handling returns proper JSON | complete
 
 **Dependencies**: None. This is the starting phase.
 
@@ -74,7 +74,7 @@ All modules live under `src/elements_rpg/` and need API endpoints:
 
 **Goal**: Connect to Supabase PostgreSQL, create SQLAlchemy models mirroring existing Pydantic models, set up Alembic migrations, and implement Supabase Auth JWT verification.
 
-- [ ] `implementation-agent` | Add sqlalchemy[asyncio], asyncpg, alembic, python-jose[cryptography], pydantic-settings to dependencies via `uv add` | pending
+- [x] `implementation-agent` | Add sqlalchemy[asyncio], asyncpg, alembic, python-jose[cryptography], pydantic-settings to dependencies via `uv add` | complete
 - [ ] `implementation-agent` | Create `src/elements_rpg/db/` package with `engine.py` (async engine factory), `session.py` (async session dependency), `base.py` (declarative base) | pending
 - [ ] `implementation-agent` | Create SQLAlchemy models in `src/elements_rpg/db/models/` mirroring all Pydantic models -- players, monsters, teams, team_members, inventories, economy_state, skills, taming_trackers, idle_trackers, action_queues, life_skills, subscriptions, ad_trackers, premium_purchases | pending
 - [ ] `implementation-agent` | Set up Alembic: `alembic init`, configure `env.py` for async, create initial migration from SQLAlchemy models | pending
@@ -446,6 +446,8 @@ scripts/
 | 2026-03-05 | 1 | Add FastAPI dependencies | Added fastapi, uvicorn[standard], httpx to project deps; pytest-asyncio to dev deps; uv sync clean, 884 tests pass |
 | 2026-03-05 | 1 | Add health check endpoint | GET /health returns status, service name, version, UTC timestamp; ruff clean |
 | 2026-03-05 | 1 | Create FastAPI app factory and settings config | api/config.py (pydantic-settings), api/app.py (factory with CORS, error handlers, health, router registry), api/routers/__init__.py (dynamic router loading), pydantic-settings added |
+| 2026-03-05 | 1 | Add API schemas and dependency stubs | api/schemas.py (SuccessResponse, ErrorResponse, PaginatedResponse, PaginationParams), api/dependencies.py (get_db_session, get_current_user, get_game_state stubs) |
+| 2026-03-05 | 1 | Phase 1 Review complete | All 10 tasks verified: app starts (69 routes), health returns 200, /docs serves Swagger UI, CORS configured (localhost:*), error handlers return structured JSON, 884 tests pass, ruff clean, no unused imports |
 
 ---
 

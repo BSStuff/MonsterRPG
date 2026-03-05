@@ -31,9 +31,10 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: list[str] = ["http://localhost:*"]
 
-    # Supabase (placeholder for Phase 2)
+    # Supabase
     supabase_url: str = ""
-    supabase_key: str = ""
+    supabase_key: str = ""  # anon key (public, client-side safe)
+    supabase_service_key: str = ""  # service_role key (secret, backend only)
     supabase_jwt_secret: str = ""
 
     # Server
