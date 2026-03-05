@@ -106,6 +106,9 @@ def select_target_by_strategy(
     Returns:
         Target monster, or None if no valid target.
     """
+    # TODO: Use proficiency to introduce suboptimal targeting at low levels
+    _ = proficiency
+
     active_enemies = [e for e in enemies if not e.is_fainted]
     active_allies = [a for a in allies if not a.is_fainted and a.monster_id != attacker.monster_id]
 

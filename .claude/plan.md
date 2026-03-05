@@ -3,7 +3,7 @@
 ## Status
 - **Phase**: implement (Phase 2 — Core Systems)
 - **Status**: active
-- **Progress**: 4/5 tasks complete
+- **Progress**: 5/5 tasks complete
 - **Last Updated**: 2026-03-04
 
 ## Feature Scope
@@ -31,7 +31,7 @@ Implement the core game systems on top of the Phase 1 foundation models:
 - [x] `implementation-agent` | Implement Monster system — level/XP progression, bond system, equipped skills management, strategy profile per monster | complete
 - [x] `implementation-agent` | Implement Skill system — skill leveling via usage, XP thresholds, milestone upgrades at levels 10/25/50 | complete
 - [x] `implementation-agent` | Implement Strategy AI system — 5 base strategies with behavior modifiers, proficiency leveling, mastery unlock | complete
-- [ ] `implementation-agent` | Implement Taming system — capture rate formula (base_rate + food_bonus + skill_modifier), soft pity after 50 attempts | pending
+- [x] `implementation-agent` | Implement Taming system — capture rate formula (base_rate + food_bonus + skill_modifier), soft pity after 50 attempts | complete
 
 ### Phase 2 — Review
 - [ ] `review-agent` | Test verification and code quality review | pending
@@ -53,3 +53,4 @@ None
 | 2026-03-04 | implementation-agent | Implement Monster system | complete | xp_for_level() power-curve formula, gain_experience() with multi-level and max cap, gain_bond() with 100 cap, bond multiplier in effective_stats(), equip/unequip/can_learn skill management, max_hp(). 33 new tests (155 total), ruff clean. |
 | 2026-03-04 | implementation-agent | Implement Skill system | complete | skill_xp_for_level() with power-curve formula, gain_experience() with multi-level and max cap, SkillMilestone model with unlocked/next methods, effective_power() with 2% per-level bonus, effective_cooldown() with 1% per-level reduction (min 0.5s). Skill constants in config.py. 36 new tests (185 total passing), ruff clean. |
 | 2026-03-04 | implementation-agent | Implement Strategy AI system | complete | Updated StrategyType enum to PRD's 5 strategies (ATTACK_NEAREST, FOLLOW_PLAYER, DEFENSIVE, AGGRESSIVE, HEAL_LOWEST). Added gain_experience()/check_mastery() to StrategyProfile with XP formula int(200*level^1.2). Created strategy_ai.py with StrategyBehavior dataclass, behavior definitions, and select_target_by_strategy(). 42 new/updated tests (227 total passing), ruff clean. |
+| 2026-03-04 | implementation-agent | Implement Taming system | complete | BASE_CAPTURE_RATES per rarity, FoodItem model with favorite elements, TamingTracker for per-species pity tracking, calculate_pity_bonus() with soft pity after 50 attempts, calculate_tame_chance() with HP modifier/food/skill bonuses, attempt_tame() integration function. 42 new tests (269 total passing), ruff clean. |
