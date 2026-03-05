@@ -78,8 +78,8 @@ All modules live under `src/elements_rpg/` and need API endpoints:
 - [x] `implementation-agent` | Create `src/elements_rpg/db/` package with `engine.py` (async engine factory), `session.py` (async session dependency), `base.py` (declarative base) | complete
 - [x] `implementation-agent` | Create SQLAlchemy models in `src/elements_rpg/db/models/` mirroring all Pydantic models -- players, monsters, teams, team_members, inventories, economy_state, skills, taming_trackers, idle_trackers, action_queues, life_skills, subscriptions, ad_trackers, premium_purchases | complete
 - [x] `implementation-agent` | Set up Alembic: `alembic init`, configure `env.py` for async, create initial migration from SQLAlchemy models | complete
-- [ ] `implementation-agent` | Create `src/elements_rpg/api/auth.py` -- Supabase JWT verification middleware (decode JWT, extract user_id, verify against Supabase JWKS endpoint), create `get_current_user` dependency | pending
-- [ ] `implementation-agent` | Create auth router endpoints: `POST /auth/register` (calls Supabase Auth, creates player profile), `POST /auth/login` (proxy to Supabase Auth), `POST /auth/refresh` (token refresh), `GET /auth/me` (current user profile) | pending
+- [x] `implementation-agent` | Create `src/elements_rpg/api/auth.py` -- Supabase JWT verification middleware (decode JWT, extract user_id, verify against Supabase JWKS endpoint), create `get_current_user` dependency | complete
+- [x] `implementation-agent` | Create auth router endpoints: `POST /auth/register` (calls Supabase Auth, creates player profile), `POST /auth/login` (proxy to Supabase Auth), `POST /auth/refresh` (token refresh), `GET /auth/me` (current user profile) | complete
 - [ ] `implementation-agent` | Create player CRUD service: `src/elements_rpg/services/player_service.py` -- create, read, update player profile in PostgreSQL, bridge between Pydantic and SQLAlchemy models | pending
 - [ ] `implementation-agent` | Create Pydantic <-> SQLAlchemy conversion utilities in `src/elements_rpg/db/converters.py` -- bidirectional mapping for all model pairs | pending
 - [ ] `test-agent` | Write integration tests for auth flow (register, login, JWT verification, protected endpoint access) using httpx async client | pending
@@ -448,6 +448,7 @@ scripts/
 | 2026-03-05 | 1 | Create FastAPI app factory and settings config | api/config.py (pydantic-settings), api/app.py (factory with CORS, error handlers, health, router registry), api/routers/__init__.py (dynamic router loading), pydantic-settings added |
 | 2026-03-05 | 1 | Add API schemas and dependency stubs | api/schemas.py (SuccessResponse, ErrorResponse, PaginatedResponse, PaginationParams), api/dependencies.py (get_db_session, get_current_user, get_game_state stubs) |
 | 2026-03-05 | 1 | Phase 1 Review complete | All 10 tasks verified: app starts (69 routes), health returns 200, /docs serves Swagger UI, CORS configured (localhost:*), error handlers return structured JSON, 884 tests pass, ruff clean, no unused imports |
+| 2026-03-05 | 2 | JWT auth middleware + auth endpoints | api/auth.py (Supabase JWT decode, get_current_user dep), routers/auth.py (register/login/refresh/me with Supabase proxy), dependencies.py updated, B008 suppressed for FastAPI Depends pattern, 884 tests pass |
 
 ---
 
