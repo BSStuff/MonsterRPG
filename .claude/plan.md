@@ -1,18 +1,45 @@
-# Feature: Monster Survival RPG — Phase 2 Core Systems
+# Feature: Monster Survival RPG — Phase 3 Economy & Idle Systems
 
 ## Status
-- **Phase**: done (Phase 2 — Core Systems)
-- **Status**: complete
-- **Progress**: 5/5 tasks complete + review fixes applied
+- **Phase**: implement (Phase 3 — Economy & Idle)
+- **Status**: active
+- **Progress**: 3/4 tasks complete
 - **Last Updated**: 2026-03-04
 
 ## Feature Scope
-Implement the core game systems on top of the Phase 1 foundation models:
-- Combat Manager with auto-combat loop, damage calculation, HP tracking
-- Monster system with level/XP progression, bond system, skill management
-- Skill system with usage-based leveling, XP thresholds, milestone upgrades
-- Strategy AI system with 5 base strategies, proficiency leveling, mastery
-- Taming system with capture rate formula and soft pity mechanic
+Implement the economy and idle game systems on top of the Phase 1 foundation models and Phase 2 core systems:
+- Idle System with fastest clear time tracking, BRPM calculation, 85% idle rate, 8hr offline cap
+- Life Skills (Mining, Cooking, Strategy Training) with XP/leveling and resource yields
+- Unified Action Queue with crafting, cooking, training actions, 2 base slots, queue management
+- Economy Manager with materials/resources tracking, crafting recipes, gold/gem transactions
+
+## Key PRD Specs
+
+### Idle System (PRD Section 5)
+- Each area tracks: **Fastest Clear Time**, **Resource Yield**, **Best Resource Rate Per Minute (BRPM)**
+- **Idle Rate = 85% of Best Recorded BRPM**
+- Idle gains cannot exceed best active performance
+- Idle gains improve when player clears faster
+- **Offline cap**: Base 8 hours, expandable via upgrades/subscription
+- Gains formula: `Min(offline_duration, offline_cap_hours) * idle_rate`
+
+### Life Skills (PRD Section 7)
+- **MVP scope**: Mining, Cooking, Strategy Training
+- All life skills **level permanently**
+- Future skills (Phase 2+): Fishing, Foraging, Tailoring, Brewing, Woodcutting, Enhancing
+
+### Unified Action Queue (PRD Section 8)
+- **Single queue per player**
+- Queue supports: Crafting, Cooking, Strategy Training, Skill Training
+- **Base Slots: 2**
+- Upgradeable: up to 6-8
+- Subscription Bonus: +1 slot
+
+### Economy / Monetization Specs (PRD Section 10)
+- **Premium Currency: Gems** — used for team slot expansion, action queue expansion, offline cap expansion, inventory expansion, cosmetic purchases, convenience boosts
+- **No direct stat purchases**
+- Reward Ads (optional): Revive, +25% idle gains (temporary), bonus taming attempt, temporary resource boost
+- Subscription tiers: Ad removal, +10% idle cap, +1 action slot, daily gems, exclusive cosmetics
 
 ## Tasks
 
@@ -26,16 +53,26 @@ Implement the core game systems on top of the Phase 1 foundation models:
 - [x] `review-agent` | Test verification and documentation review | complete
 - [x] `blocking-pr-critic` | Final approval of Phase 1 | complete
 
-### Phase 2 — Core Systems (Implementation)
+### Phase 2 — Core Systems (Complete)
 - [x] `implementation-agent` | Implement Combat Manager — auto-combat loop, damage calculation, HP tracking, turn-based resolution with speed priority | complete
 - [x] `implementation-agent` | Implement Monster system — level/XP progression, bond system, equipped skills management, strategy profile per monster | complete
 - [x] `implementation-agent` | Implement Skill system — skill leveling via usage, XP thresholds, milestone upgrades at levels 10/25/50 | complete
 - [x] `implementation-agent` | Implement Strategy AI system — 5 base strategies with behavior modifiers, proficiency leveling, mastery unlock | complete
 - [x] `implementation-agent` | Implement Taming system — capture rate formula (base_rate + food_bonus + skill_modifier), soft pity after 50 attempts | complete
 
-### Phase 2 — Review
+### Phase 2 — Review (Complete)
 - [x] `review-agent` | Test verification and code quality review | complete
 - [x] `blocking-pr-critic` | Final approval of Phase 2 — 3 review fixes applied | complete
+
+### Phase 3 — Economy & Idle (Implementation)
+- [x] `implementation-agent` | Implement Idle system — fastest clear time tracking, BRPM calculation, 85% idle rate, 8hr offline cap, offline gains calculation | complete
+- [x] `implementation-agent` | Implement Life Skills — Mining, Cooking, Strategy Training with XP/leveling, resource yields, permanent progression | complete
+- [x] `implementation-agent` | Implement Unified Action Queue — crafting, cooking, training actions with 2 base slots, upgradeable to 6-8, queue management | complete
+- [ ] `implementation-agent` | Implement Economy Manager — materials/resources tracking, crafting recipes, gold/gem transactions, no direct stat purchases | pending
+
+### Phase 3 — Review
+- [ ] `review-agent` | Test verification and code quality review | pending
+- [ ] `blocking-pr-critic` | Final approval of Phase 3 | pending
 
 ## Blockers
 None
@@ -56,3 +93,5 @@ None
 | 2026-03-04 | implementation-agent | Implement Taming system | complete | BASE_CAPTURE_RATES per rarity, FoodItem model with favorite elements, TamingTracker for per-species pity tracking, calculate_pity_bonus() with soft pity after 50 attempts, calculate_tame_chance() with HP modifier/food/skill bonuses, attempt_tame() integration function. 42 new tests (269 total passing), ruff clean. |
 | 2026-03-04 | review-agent | Phase 2 code quality review | complete | SHIP-READY. 269 tests pass, 99% coverage (5 lines missed), ruff check + format clean. 1 fix applied: acknowledged unused proficiency param in strategy_ai.py with TODO. No blockers, no security issues. 3 MEDIUM findings (proficiency not wired, unreachable fallback in strategy_ai, combat manager lines 183/187 untested). 2 LOW findings (skill gain_experience rejects 0 xp unlike monster version, combat manager doesn't integrate strategy AI targeting). |
 | 2026-03-04 | implementation-agent | Fix 3 blocking Phase 2 review issues | complete | (1) Skill.gain_experience() now subtracts XP per level-up matching Monster/Strategy pattern. (2) damage_calc uses skill.effective_power() — removed duplicate skill_bonus multiplier. (3) Removed unused SKILL_MILESTONE_LEVELS constant. 269 tests pass, ruff clean. |
+| 2026-03-04 | implementation-agent | Implement Idle system | complete | IdleTracker with per-area best clear time recording, BRPM calculation, 85% idle efficiency rate. OfflineGainsResult with 8hr cap, configurable reward rates. AreaClearRecord with validation. 32 new tests (301 total passing), ruff clean. |
+| 2026-03-04 | implementation-agent | Implement Unified Action Queue | complete | ActionQueue with QueuedAction model, 5 ActionTypes (craft/cook/mine/train_strategy/train_skill), auto-start on add, advance/cancel/clear operations, 2 base slots expandable to 8. 38 new tests (413 total passing), ruff clean. |
