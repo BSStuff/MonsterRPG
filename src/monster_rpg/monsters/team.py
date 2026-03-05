@@ -29,7 +29,7 @@ class TeamSlot(BaseModel):
 
     monster_id: str = Field(min_length=1)
     role: TeamRole | None = Field(default=None)
-    position: int = Field(ge=0, le=5)
+    position: int = Field(ge=0, lt=MAX_TEAM_SIZE)
 
 
 class Team(BaseModel):

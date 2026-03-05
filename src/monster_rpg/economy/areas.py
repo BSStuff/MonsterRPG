@@ -1,6 +1,6 @@
 """MVP Area definitions and drop table system."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from monster_rpg.economy.crafting import Material
 from monster_rpg.economy.manager import Area, AreaDifficulty
@@ -16,6 +16,15 @@ class DropTableEntry(BaseModel):
     difficulty_required: AreaDifficulty | None = Field(
         default=None, description="Minimum difficulty for this drop"
     )
+
+    @model_validator(mode="after")
+    def validate_quantity_range(self) -> "DropTableEntry":
+        if self.min_quantity > self.max_quantity:
+            raise ValueError(
+                f"min_quantity ({self.min_quantity}) cannot exceed "
+                f"max_quantity ({self.max_quantity})"
+            )
+        return self
 
 
 class AreaDropTable(BaseModel):

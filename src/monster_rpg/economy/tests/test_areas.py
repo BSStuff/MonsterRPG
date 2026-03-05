@@ -75,6 +75,15 @@ class TestDropTableEntry:
         assert entry.max_quantity == 1
         assert entry.difficulty_required is None
 
+    def test_drop_table_entry_min_exceeds_max_raises(self) -> None:
+        with pytest.raises(ValidationError, match="min_quantity"):
+            DropTableEntry(
+                material_id="mat_test",
+                drop_chance=0.5,
+                min_quantity=5,
+                max_quantity=2,
+            )
+
 
 # ==========================================
 # AreaDropTable Tests
