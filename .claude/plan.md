@@ -33,7 +33,7 @@ Transform the ElementsRPG Python backend from in-memory Pydantic models (884 tes
 
 ## Existing Codebase Modules
 
-All modules live under `src/monster_rpg/` and need API endpoints:
+All modules live under `src/elements_rpg/` and need API endpoints:
 
 | Module | Key Files | Models/Managers |
 |--------|-----------|-----------------|
@@ -53,8 +53,8 @@ All modules live under `src/monster_rpg/` and need API endpoints:
 
 **Goal**: Scaffold the FastAPI application with routers, middleware, config, and base structure. No database yet -- endpoints return mock/in-memory responses where needed.
 
-- [ ] `implementation-agent` | Rename project: update pyproject.toml name, description, package references, README, CLAUDE.md from "Monster Survival RPG" / "monster-rpg" to "ElementsRPG" / "elements-rpg" | pending
-- [ ] `implementation-agent` | Add FastAPI + uvicorn + httpx + pytest-asyncio to dependencies via `uv add` | pending
+- [x] `implementation-agent` | Rename project: update pyproject.toml name, description, package references, README, CLAUDE.md from "Monster Survival RPG" / "monster-rpg" to "ElementsRPG" / "elements-rpg" | complete
+- [x] `implementation-agent` | Add FastAPI + uvicorn + httpx + pytest-asyncio to dependencies via `uv add` | complete
 - [ ] `implementation-agent` | Create `src/elements_rpg/api/` package with `__init__.py`, `app.py` (FastAPI app factory), and `config.py` (Settings via pydantic-settings, env vars for Supabase URL/keys, Render port, CORS origins) | pending
 - [ ] `implementation-agent` | Create base router structure: `src/elements_rpg/api/routers/` with stub routers for all 12 domains (auth, combat, monsters, economy, idle, taming, skills, crafting, save_load, premium, subscriptions, ads) | pending
 - [ ] `implementation-agent` | Set up CORS middleware -- allow Unity WebGL origins (localhost:* for dev, Vercel domain for prod), configurable via env vars | pending
@@ -442,6 +442,8 @@ scripts/
 | Date | Phase | Tasks Completed | Notes |
 |------|-------|-----------------|-------|
 | 2026-03-05 | -- | Plan created | All 7 phases defined, 73 endpoints mapped across 12 domains |
+| 2026-03-05 | 1 | Rename project to ElementsRPG | Package dir renamed src/monster_rpg -> src/elements_rpg, all imports updated, pyproject.toml + README updated, 884 tests pass |
+| 2026-03-05 | 1 | Add FastAPI dependencies | Added fastapi, uvicorn[standard], httpx to project deps; pytest-asyncio to dev deps; uv sync clean, 884 tests pass |
 
 ---
 
