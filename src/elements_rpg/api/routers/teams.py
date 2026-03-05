@@ -1,56 +1,249 @@
-"""Teams router — team management and composition endpoints."""
+"""Teams router -- team management and composition endpoints."""
 
-from http import HTTPStatus
+from __future__ import annotations
 
-from fastapi import APIRouter
-from fastapi.responses import JSONResponse
+import uuid
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession  # noqa: TC002
+
+from elements_rpg.api.auth import get_current_user
+from elements_rpg.api.schemas import SuccessResponse
+from elements_rpg.db.session import get_db
+from elements_rpg.services import player_service, team_service
 
 router = APIRouter(prefix="/teams", tags=["Teams"])
 
 
-@router.get("/", status_code=HTTPStatus.NOT_IMPLEMENTED)
-async def list_teams() -> JSONResponse:
+# ---------------------------------------------------------------------------
+# Request schemas
+# ---------------------------------------------------------------------------
+
+
+class CreateTeamRequest(BaseModel):
+    """Request body for creating a team."""
+
+    name: str = Field(
+        default="Team 1",
+        min_length=1,
+        max_length=30,
+        description="Display name for the team",
+    )
+    monster_ids: list[str] = Field(
+        default_factory=list,
+        max_length=6,
+        description="Monster UUIDs to add (max 6)",
+    )
+    roles: dict[str, str] | None = Field(
+        default=None,
+        description="Optional monster_id -> role mapping",
+    )
+
+
+class UpdateTeamRequest(BaseModel):
+    """Request body for updating a team."""
+
+    name: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=30,
+        description="New team name (optional)",
+    )
+    monster_ids: list[str] | None = Field(
+        default=None,
+        max_length=6,
+        description="New monster UUIDs (optional, replaces all)",
+    )
+    roles: dict[str, str] | None = Field(
+        default=None,
+        description="Optional monster_id -> role mapping",
+    )
+
+
+class ReorderTeamRequest(BaseModel):
+    """Request body for reordering team members."""
+
+    ordered_monster_ids: list[str] = Field(
+        description="Monster UUIDs in desired order",
+    )
+
+
+class AssignRolesRequest(BaseModel):
+    """Request body for assigning roles."""
+
+    role_assignments: dict[str, str] = Field(
+        description="Mapping of monster_id -> role",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Helper: resolve player_id from JWT
+# ---------------------------------------------------------------------------
+
+
+async def _resolve_player_id(
+    db: AsyncSession,
+    user: dict[str, Any],
+) -> uuid.UUID:
+    """Look up the internal player ID from Supabase user ID.
+
+    Raises:
+        HTTPException 404: If no player record exists for this user.
+    """
+    supabase_user_id = user["sub"]
+    player = await player_service.get_player_by_supabase_id(db, supabase_user_id)
+    if player is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Player profile not found. Register first.",
+        )
+    return player.id
+
+
+def _parse_uuid(value: str, field_name: str) -> uuid.UUID:
+    """Parse a string as UUID, raising 400 if invalid."""
+    try:
+        return uuid.UUID(value)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid UUID for {field_name}: '{value}'",
+        ) from e
+
+
+# ---------------------------------------------------------------------------
+# Endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get("/")
+async def list_teams(
+    db: AsyncSession = Depends(get_db),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> SuccessResponse[list[dict[str, Any]]]:
     """List all teams for the authenticated player."""
-    return JSONResponse(
-        status_code=HTTPStatus.NOT_IMPLEMENTED,
-        content={"status": "not_implemented", "endpoint": "List all teams"},
-    )
+    player_id = await _resolve_player_id(db, user)
+    teams = await team_service.get_teams(db, player_id)
+    return SuccessResponse(data=teams)
 
 
-@router.post("/", status_code=HTTPStatus.NOT_IMPLEMENTED)
-async def create_team() -> JSONResponse:
+@router.post("/", status_code=status.HTTP_201_CREATED)
+async def create_team(
+    body: CreateTeamRequest,
+    db: AsyncSession = Depends(get_db),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> SuccessResponse[dict[str, Any]]:
     """Create a new team (up to 6 monsters)."""
-    return JSONResponse(
-        status_code=HTTPStatus.NOT_IMPLEMENTED,
-        content={"status": "not_implemented", "endpoint": "Create new team"},
-    )
+    player_id = await _resolve_player_id(db, user)
+    try:
+        team = await team_service.create_team(
+            db,
+            player_id,
+            body.name,
+            body.monster_ids,
+            body.roles,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e
+    return SuccessResponse(data=team)
 
 
-@router.put("/{team_id}", status_code=HTTPStatus.NOT_IMPLEMENTED)
-async def update_team(team_id: str) -> JSONResponse:
-    """Update a team's composition."""
-    return JSONResponse(
-        status_code=HTTPStatus.NOT_IMPLEMENTED,
-        content={"status": "not_implemented", "endpoint": f"Update team {team_id}"},
-    )
+@router.put("/{team_id}")
+async def update_team(
+    team_id: str,
+    body: UpdateTeamRequest,
+    db: AsyncSession = Depends(get_db),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> SuccessResponse[dict[str, Any]]:
+    """Update a team's name and/or composition."""
+    player_id = await _resolve_player_id(db, user)
+    team_uuid = _parse_uuid(team_id, "team_id")
+    try:
+        team = await team_service.update_team(
+            db,
+            player_id,
+            team_uuid,
+            name=body.name,
+            monster_ids=body.monster_ids,
+            roles=body.roles,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e
+    return SuccessResponse(data=team)
 
 
-@router.delete("/{team_id}", status_code=HTTPStatus.NOT_IMPLEMENTED)
-async def delete_team(team_id: str) -> JSONResponse:
+@router.delete("/{team_id}")
+async def delete_team(
+    team_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> SuccessResponse[dict[str, str]]:
     """Delete a team."""
-    return JSONResponse(
-        status_code=HTTPStatus.NOT_IMPLEMENTED,
-        content={"status": "not_implemented", "endpoint": f"Delete team {team_id}"},
-    )
+    player_id = await _resolve_player_id(db, user)
+    team_uuid = _parse_uuid(team_id, "team_id")
+    try:
+        await team_service.delete_team(db, player_id, team_uuid)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from e
+    return SuccessResponse(data={"deleted": team_id})
 
 
-@router.put("/{team_id}/monster/{monster_id}/role", status_code=HTTPStatus.NOT_IMPLEMENTED)
-async def set_monster_role(team_id: str, monster_id: str) -> JSONResponse:
-    """Assign a role to a monster within a team."""
-    return JSONResponse(
-        status_code=HTTPStatus.NOT_IMPLEMENTED,
-        content={
-            "status": "not_implemented",
-            "endpoint": f"Set role for monster {monster_id} in team {team_id}",
-        },
-    )
+@router.put("/{team_id}/reorder")
+async def reorder_team(
+    team_id: str,
+    body: ReorderTeamRequest,
+    db: AsyncSession = Depends(get_db),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> SuccessResponse[dict[str, Any]]:
+    """Reorder members within a team."""
+    player_id = await _resolve_player_id(db, user)
+    team_uuid = _parse_uuid(team_id, "team_id")
+    try:
+        team = await team_service.reorder_team(
+            db,
+            player_id,
+            team_uuid,
+            body.ordered_monster_ids,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e
+    return SuccessResponse(data=team)
+
+
+@router.put("/{team_id}/roles")
+async def assign_roles(
+    team_id: str,
+    body: AssignRolesRequest,
+    db: AsyncSession = Depends(get_db),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> SuccessResponse[dict[str, Any]]:
+    """Assign roles to team members."""
+    player_id = await _resolve_player_id(db, user)
+    team_uuid = _parse_uuid(team_id, "team_id")
+    try:
+        team = await team_service.assign_roles(
+            db,
+            player_id,
+            team_uuid,
+            body.role_assignments,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e
+    return SuccessResponse(data=team)

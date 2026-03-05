@@ -113,13 +113,13 @@ All modules live under `src/elements_rpg/` and need API endpoints:
 - [x] `implementation-agent` | `PUT /monsters/{monster_id}/skills` -- equip/reorder monster skills (max 4) | complete
 
 #### Teams
-- [ ] `implementation-agent` | Create team service: `src/elements_rpg/services/team_service.py` -- wraps Team model with DB persistence | pending
-- [ ] `implementation-agent` | `GET /teams` -- list player's teams | pending
-- [ ] `implementation-agent` | `POST /teams` -- create a new team (up to 6 monsters) | pending
-- [ ] `implementation-agent` | `PUT /teams/{team_id}` -- update team composition | pending
-- [ ] `implementation-agent` | `DELETE /teams/{team_id}` -- delete a team | pending
-- [ ] `implementation-agent` | `PUT /teams/{team_id}/reorder` -- reorder team members | pending
-- [ ] `implementation-agent` | `PUT /teams/{team_id}/roles` -- assign roles to team members | pending
+- [x] `implementation-agent` | Create team service: `src/elements_rpg/services/team_service.py` -- wraps Team model with DB persistence | complete
+- [x] `implementation-agent` | `GET /teams` -- list player's teams | complete
+- [x] `implementation-agent` | `POST /teams` -- create a new team (up to 6 monsters) | complete
+- [x] `implementation-agent` | `PUT /teams/{team_id}` -- update team composition | complete
+- [x] `implementation-agent` | `DELETE /teams/{team_id}` -- delete a team | complete
+- [x] `implementation-agent` | `PUT /teams/{team_id}/reorder` -- reorder team members | complete
+- [x] `implementation-agent` | `PUT /teams/{team_id}/roles` -- assign roles to team members | complete
 
 #### Combat
 - [ ] `implementation-agent` | Create combat service: `src/elements_rpg/services/combat_service.py` -- wraps CombatManager with state persistence | pending
@@ -453,6 +453,7 @@ scripts/
 | 2026-03-05 | 2 | Phase 2 Review complete | All 10 tasks verified: DB models cover 9 tables, Alembic migration matches models, auth flow (register/login/refresh/me) fully implemented, JWT middleware rejects invalid/expired/missing tokens, player CRUD service works, 902 tests pass, ruff clean, no hardcoded secrets |
 | 2026-03-05 | 3 | Save/Load service + endpoints | save_service.py (save/load/version/create_fresh), saves router (POST /, GET /, POST /new, GET /version) with auth, 902 tests pass, ruff clean |
 | 2026-03-05 | 3 | Monster service + endpoints | monster_service.py (bestiary, owned, xp, bond, skills), monsters router (7 endpoints: 2 public bestiary, 5 authenticated CRUD/mutation), 902 tests pass, ruff clean |
+| 2026-03-05 | 3 | Team service + endpoints | team_service.py (CRUD, reorder, assign_roles with ownership validation), teams router (6 endpoints: list, create, update, delete, reorder, roles), 902 tests pass, ruff clean |
 
 ---
 
