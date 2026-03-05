@@ -103,14 +103,14 @@ All modules live under `src/elements_rpg/` and need API endpoints:
 - [x] `implementation-agent` | `GET /saves/version` -- return save version without full deserialization | complete
 
 #### Monsters
-- [ ] `implementation-agent` | Create monster service: `src/elements_rpg/services/monster_service.py` -- wraps existing monster models/bestiary logic with DB persistence | pending
-- [ ] `implementation-agent` | `GET /monsters/bestiary` -- list all available monster species (12 species from bestiary.py) | pending
-- [ ] `implementation-agent` | `GET /monsters/bestiary/{species_id}` -- get species details (stats, skills, traits) | pending
-- [ ] `implementation-agent` | `GET /monsters/owned` -- list player's owned monsters with current stats | pending
-- [ ] `implementation-agent` | `GET /monsters/{monster_id}` -- get specific owned monster details | pending
-- [ ] `implementation-agent` | `POST /monsters/{monster_id}/xp` -- grant XP to a monster, return level-up info | pending
-- [ ] `implementation-agent` | `POST /monsters/{monster_id}/bond` -- increase bond level | pending
-- [ ] `implementation-agent` | `PUT /monsters/{monster_id}/skills` -- equip/reorder monster skills (max 4) | pending
+- [x] `implementation-agent` | Create monster service: `src/elements_rpg/services/monster_service.py` -- wraps existing monster models/bestiary logic with DB persistence | complete
+- [x] `implementation-agent` | `GET /monsters/bestiary` -- list all available monster species (12 species from bestiary.py) | complete
+- [x] `implementation-agent` | `GET /monsters/bestiary/{species_id}` -- get species details (stats, skills, traits) | complete
+- [x] `implementation-agent` | `GET /monsters/owned` -- list player's owned monsters with current stats | complete
+- [x] `implementation-agent` | `GET /monsters/{monster_id}` -- get specific owned monster details | complete
+- [x] `implementation-agent` | `POST /monsters/{monster_id}/xp` -- grant XP to a monster, return level-up info | complete
+- [x] `implementation-agent` | `POST /monsters/{monster_id}/bond` -- increase bond level | complete
+- [x] `implementation-agent` | `PUT /monsters/{monster_id}/skills` -- equip/reorder monster skills (max 4) | complete
 
 #### Teams
 - [ ] `implementation-agent` | Create team service: `src/elements_rpg/services/team_service.py` -- wraps Team model with DB persistence | pending
@@ -452,6 +452,7 @@ scripts/
 | 2026-03-05 | 2 | Player service + DB converters | services/player_service.py (create/read/update CRUD), db/converters.py (bidirectional Pydantic<->SQLAlchemy for player, game_state, monster, economy), auth router refactored to use create_player service, 884 tests pass |
 | 2026-03-05 | 2 | Phase 2 Review complete | All 10 tasks verified: DB models cover 9 tables, Alembic migration matches models, auth flow (register/login/refresh/me) fully implemented, JWT middleware rejects invalid/expired/missing tokens, player CRUD service works, 902 tests pass, ruff clean, no hardcoded secrets |
 | 2026-03-05 | 3 | Save/Load service + endpoints | save_service.py (save/load/version/create_fresh), saves router (POST /, GET /, POST /new, GET /version) with auth, 902 tests pass, ruff clean |
+| 2026-03-05 | 3 | Monster service + endpoints | monster_service.py (bestiary, owned, xp, bond, skills), monsters router (7 endpoints: 2 public bestiary, 5 authenticated CRUD/mutation), 902 tests pass, ruff clean |
 
 ---
 

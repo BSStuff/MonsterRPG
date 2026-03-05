@@ -1,77 +1,203 @@
-"""Monsters router — bestiary, owned monsters, and monster management endpoints."""
+"""Monsters router -- bestiary, owned monsters, and monster management endpoints."""
 
-from http import HTTPStatus
+from __future__ import annotations
 
-from fastapi import APIRouter
-from fastapi.responses import JSONResponse
+import uuid
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession  # noqa: TC002
+
+from elements_rpg.api.auth import get_current_user
+from elements_rpg.api.schemas import SuccessResponse
+from elements_rpg.db.session import get_db
+from elements_rpg.services import monster_service, player_service
 
 router = APIRouter(prefix="/monsters", tags=["Monsters"])
 
 
-@router.get("/bestiary", status_code=HTTPStatus.NOT_IMPLEMENTED)
-async def get_bestiary() -> JSONResponse:
+# ---------------------------------------------------------------------------
+# Request schemas
+# ---------------------------------------------------------------------------
+
+
+class GrantXPRequest(BaseModel):
+    """Request body for granting XP to a monster."""
+
+    amount: int = Field(ge=0, description="XP to grant")
+
+
+class IncreaseBondRequest(BaseModel):
+    """Request body for increasing bond level."""
+
+    amount: int = Field(ge=0, description="Bond points to add")
+
+
+class UpdateSkillsRequest(BaseModel):
+    """Request body for updating equipped skills."""
+
+    skill_ids: list[str] = Field(
+        max_length=4,
+        description="Skill IDs to equip (max 4)",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Helper: resolve player_id from JWT
+# ---------------------------------------------------------------------------
+
+
+async def _resolve_player_id(
+    db: AsyncSession,
+    user: dict[str, Any],
+) -> uuid.UUID:
+    """Look up the internal player ID from Supabase user ID.
+
+    Raises:
+        HTTPException 404: If no player record exists for this user.
+    """
+    supabase_user_id = user["sub"]
+    player = await player_service.get_player_by_supabase_id(db, supabase_user_id)
+    if player is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Player profile not found. Register first.",
+        )
+    return player.id
+
+
+# ---------------------------------------------------------------------------
+# Public endpoints (no auth required)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/bestiary")
+async def get_bestiary() -> SuccessResponse[list[dict[str, Any]]]:
     """List all available monster species from the bestiary."""
-    return JSONResponse(
-        status_code=HTTPStatus.NOT_IMPLEMENTED,
-        content={"status": "not_implemented", "endpoint": "List all monster species"},
+    species_list = await monster_service.get_bestiary()
+    return SuccessResponse(
+        data=[s.model_dump() for s in species_list],
     )
 
 
-@router.get("/owned", status_code=HTTPStatus.NOT_IMPLEMENTED)
-async def get_owned_monsters() -> JSONResponse:
+@router.get("/bestiary/{species_id}")
+async def get_species(species_id: str) -> SuccessResponse[dict[str, Any]]:
+    """Get details for a specific monster species."""
+    species = await monster_service.get_species(species_id)
+    if species is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Species '{species_id}' not found in bestiary",
+        )
+    return SuccessResponse(data=species.model_dump())
+
+
+# ---------------------------------------------------------------------------
+# Authenticated endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get("/owned")
+async def get_owned_monsters(
+    db: AsyncSession = Depends(get_db),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> SuccessResponse[list[dict[str, Any]]]:
     """List all monsters owned by the authenticated player."""
-    return JSONResponse(
-        status_code=HTTPStatus.NOT_IMPLEMENTED,
-        content={"status": "not_implemented", "endpoint": "List owned monsters"},
-    )
+    player_id = await _resolve_player_id(db, user)
+    monsters = await monster_service.get_owned_monsters(db, player_id)
+    return SuccessResponse(data=monsters)
 
 
-@router.get("/{monster_id}", status_code=HTTPStatus.NOT_IMPLEMENTED)
-async def get_monster(monster_id: str) -> JSONResponse:
+@router.get("/{monster_id}")
+async def get_monster(
+    monster_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> SuccessResponse[dict[str, Any]]:
     """Get details of a specific owned monster."""
-    return JSONResponse(
-        status_code=HTTPStatus.NOT_IMPLEMENTED,
-        content={"status": "not_implemented", "endpoint": f"Get monster {monster_id}"},
-    )
+    player_id = await _resolve_player_id(db, user)
+    monster_uuid = _parse_uuid(monster_id, "monster_id")
+    monster = await monster_service.get_monster(db, player_id, monster_uuid)
+    if monster is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Monster '{monster_id}' not found or not owned by you",
+        )
+    return SuccessResponse(data=monster)
 
 
-@router.post("/{monster_id}/experience", status_code=HTTPStatus.NOT_IMPLEMENTED)
-async def grant_experience(monster_id: str) -> JSONResponse:
+@router.post("/{monster_id}/xp")
+async def grant_experience(
+    monster_id: str,
+    body: GrantXPRequest,
+    db: AsyncSession = Depends(get_db),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> SuccessResponse[dict[str, Any]]:
     """Grant experience points to a monster."""
-    return JSONResponse(
-        status_code=HTTPStatus.NOT_IMPLEMENTED,
-        content={"status": "not_implemented", "endpoint": f"Grant XP to monster {monster_id}"},
-    )
+    player_id = await _resolve_player_id(db, user)
+    monster_uuid = _parse_uuid(monster_id, "monster_id")
+    try:
+        result = await monster_service.grant_xp(db, player_id, monster_uuid, body.amount)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e
+    return SuccessResponse(data=result)
 
 
-@router.post("/{monster_id}/bond", status_code=HTTPStatus.NOT_IMPLEMENTED)
-async def increase_bond(monster_id: str) -> JSONResponse:
+@router.post("/{monster_id}/bond")
+async def increase_bond(
+    monster_id: str,
+    body: IncreaseBondRequest,
+    db: AsyncSession = Depends(get_db),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> SuccessResponse[dict[str, Any]]:
     """Increase the bond level of a monster."""
-    return JSONResponse(
-        status_code=HTTPStatus.NOT_IMPLEMENTED,
-        content={
-            "status": "not_implemented",
-            "endpoint": f"Increase bond for monster {monster_id}",
-        },
-    )
+    player_id = await _resolve_player_id(db, user)
+    monster_uuid = _parse_uuid(monster_id, "monster_id")
+    try:
+        result = await monster_service.increase_bond(db, player_id, monster_uuid, body.amount)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e
+    return SuccessResponse(data=result)
 
 
-@router.post("/{monster_id}/skill/equip", status_code=HTTPStatus.NOT_IMPLEMENTED)
-async def equip_skill(monster_id: str) -> JSONResponse:
-    """Equip a skill to a monster (max 4 skills)."""
-    return JSONResponse(
-        status_code=HTTPStatus.NOT_IMPLEMENTED,
-        content={"status": "not_implemented", "endpoint": f"Equip skill on monster {monster_id}"},
-    )
+@router.put("/{monster_id}/skills")
+async def update_skills(
+    monster_id: str,
+    body: UpdateSkillsRequest,
+    db: AsyncSession = Depends(get_db),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> SuccessResponse[dict[str, Any]]:
+    """Update equipped skills on a monster (max 4)."""
+    player_id = await _resolve_player_id(db, user)
+    monster_uuid = _parse_uuid(monster_id, "monster_id")
+    try:
+        result = await monster_service.update_skills(db, player_id, monster_uuid, body.skill_ids)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e
+    return SuccessResponse(data=result)
 
 
-@router.post("/{monster_id}/skill/unequip", status_code=HTTPStatus.NOT_IMPLEMENTED)
-async def unequip_skill(monster_id: str) -> JSONResponse:
-    """Unequip a skill from a monster."""
-    return JSONResponse(
-        status_code=HTTPStatus.NOT_IMPLEMENTED,
-        content={
-            "status": "not_implemented",
-            "endpoint": f"Unequip skill from monster {monster_id}",
-        },
-    )
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _parse_uuid(value: str, field_name: str) -> uuid.UUID:
+    """Parse a string as UUID, raising 400 if invalid."""
+    try:
+        return uuid.UUID(value)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid UUID for {field_name}: '{value}'",
+        ) from e
