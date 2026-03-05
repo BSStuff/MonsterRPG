@@ -135,10 +135,7 @@ class TestTeamConstruction:
 
 class TestTeamSizeValidation:
     def test_validate_team_size_rejects_over_max(self) -> None:
-        slots = [
-            TeamSlot(monster_id=f"m{i}", position=min(i, 5))
-            for i in range(MAX_TEAM_SIZE + 1)
-        ]
+        slots = [TeamSlot(monster_id=f"m{i}", position=min(i, 5)) for i in range(MAX_TEAM_SIZE + 1)]
         with pytest.raises(ValidationError):
             Team(team_id="t", slots=slots)
 

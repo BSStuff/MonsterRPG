@@ -62,8 +62,23 @@ Each module follows vertical slice architecture with co-located tests.
 - **Bestiary**: 12 MVP monsters with unique skills, passive traits, and stat distributions
 - **Skill Catalog**: 28 unique skills distributed across monsters with specialized abilities
 
+**Phase 5 Implementation Complete:**
+- **Premium Currency**: Gem system with purchase tracking and balance management
+- **Reward Ads**: Optional ad hooks for combat revive, idle boost, and taming bonus
+- **Subscriptions**: Tiered subscription system with benefit tracking and renewal management
+- **Save/Load System**: Cloud-ready serialization with versioning support and full game state persistence
+
+## Project Status
+
+All 5 phases complete:
+- **Phase 1 — Foundation**: Python project structure, Pydantic models, development setup
+- **Phase 2 — Core Systems**: Combat, monsters, skills, strategy AI, taming
+- **Phase 3 — Economy & Idle**: Offline progression, life skills, action queue, resource management
+- **Phase 4 — Team & Areas**: Teams, 2 areas, 12 monsters, 28 skills
+- **Phase 5 — Monetization & Polish**: Gems, reward ads, subscriptions, save/load
+
 ## Development
 
-- 757 tests with 99% coverage
+- 884 tests with 99% coverage
 - Ruff for linting (line-length=100, double quotes)
 - Mypy strict mode for type checking

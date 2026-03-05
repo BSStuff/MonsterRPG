@@ -308,6 +308,7 @@ This project may have hooks that auto-format code after writes. If a tool call b
 | 2026-03-04 | Phase 2 Core Systems — Combat Manager, Monster progression, Skill system, Strategy AI, Taming system | src/monster_rpg/combat/*, src/monster_rpg/monsters/*, src/monster_rpg/skills/*, config.py | 269 tests passing, 99% coverage, all review issues resolved |
 | 2026-03-04 | Phase 3 Economy & Idle — Idle tracking, Life Skills, Action Queue, Economy Manager | src/monster_rpg/idle/*, src/monster_rpg/economy/*, README.md, CLAUDE.md | 441 tests passing, 99% coverage, all review issues resolved |
 | 2026-03-04 | Phase 4 Team & Areas — team system, 2 MVP areas, 12 monsters, 28 skills | src/monster_rpg/monsters/team.py, src/monster_rpg/monsters/bestiary.py, src/monster_rpg/monsters/skill_catalog*.py, src/monster_rpg/economy/areas.py | 757 tests passing, 99% coverage, all review issues resolved |
+| 2026-03-04 | Phase 5 Monetization & Polish — gems, ads, subscriptions, save/load | src/monster_rpg/economy/premium.py, src/monster_rpg/economy/reward_ads.py, src/monster_rpg/economy/subscription.py, src/monster_rpg/save_load.py, tests | 884 tests passing, 99% coverage, all phases complete |
 
 ---
 
@@ -344,10 +345,10 @@ This project may have hooks that auto-format code after writes. If a tool call b
 - [x] Design and implement 12 MVP Monsters with unique skills and traits
 
 #### Phase 5 — Monetization & Polish
-- [ ] Implement Premium Currency (Gems) system
-- [ ] Implement optional Reward Ads hooks (revive, idle boost, taming bonus)
-- [ ] Implement Subscription tier logic
-- [ ] Save/Load system (cloud-ready serialization)
+- [x] Implement Premium Currency (Gems) system
+- [x] Implement optional Reward Ads hooks (revive, idle boost, taming bonus)
+- [x] Implement Subscription tier logic
+- [x] Save/Load system (cloud-ready serialization)
 
 **Note for Claude Code CLI**:
 - Update this section as you work on tasks
