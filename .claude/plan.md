@@ -83,7 +83,7 @@ All modules live under `src/elements_rpg/` and need API endpoints:
 - [x] `implementation-agent` | Create player CRUD service: `src/elements_rpg/services/player_service.py` -- create, read, update player profile in PostgreSQL, bridge between Pydantic and SQLAlchemy models | complete
 - [x] `implementation-agent` | Create Pydantic <-> SQLAlchemy conversion utilities in `src/elements_rpg/db/converters.py` -- bidirectional mapping for all model pairs | complete
 - [x] `test-agent` | Write integration tests for auth flow (register, login, JWT verification, protected endpoint access) using httpx async client | complete
-- [ ] `review-agent` | Review Phase 2: verify migrations run cleanly, auth flow works end-to-end, player CRUD persists to PostgreSQL, JWT middleware rejects invalid tokens | pending
+- [x] `review-agent` | Review Phase 2: verify migrations run cleanly, auth flow works end-to-end, player CRUD persists to PostgreSQL, JWT middleware rejects invalid tokens | complete
 
 **Dependencies**: Phase 1 complete (FastAPI app exists to attach auth to).
 
@@ -96,11 +96,11 @@ All modules live under `src/elements_rpg/` and need API endpoints:
 **Goal**: Implement the highest-priority endpoints for save/load, monsters, teams, combat, and taming. All endpoints require authentication.
 
 #### Save/Load (Highest Priority)
-- [ ] `implementation-agent` | Create save/load service: `src/elements_rpg/services/save_service.py` -- full GameSaveData read/write to PostgreSQL (JSON column for atomic save, with relational tables for queryable fields) | pending
-- [ ] `implementation-agent` | `POST /save` -- serialize and store full GameSaveData for authenticated user, with timestamp and version | pending
-- [ ] `implementation-agent` | `GET /save` -- retrieve latest GameSaveData for authenticated user | pending
-- [ ] `implementation-agent` | `POST /save/new` -- create fresh save for new player (calls create_new_save) | pending
-- [ ] `implementation-agent` | `GET /save/version` -- return save version without full deserialization | pending
+- [x] `implementation-agent` | Create save/load service: `src/elements_rpg/services/save_service.py` -- full GameSaveData read/write to PostgreSQL (JSON column for atomic save, with relational tables for queryable fields) | complete
+- [x] `implementation-agent` | `POST /saves` -- serialize and store full GameSaveData for authenticated user, with timestamp and version | complete
+- [x] `implementation-agent` | `GET /saves` -- retrieve latest GameSaveData for authenticated user | complete
+- [x] `implementation-agent` | `POST /saves/new` -- create fresh save for new player (calls create_new_save) | complete
+- [x] `implementation-agent` | `GET /saves/version` -- return save version without full deserialization | complete
 
 #### Monsters
 - [ ] `implementation-agent` | Create monster service: `src/elements_rpg/services/monster_service.py` -- wraps existing monster models/bestiary logic with DB persistence | pending
@@ -450,6 +450,8 @@ scripts/
 | 2026-03-05 | 1 | Phase 1 Review complete | All 10 tasks verified: app starts (69 routes), health returns 200, /docs serves Swagger UI, CORS configured (localhost:*), error handlers return structured JSON, 884 tests pass, ruff clean, no unused imports |
 | 2026-03-05 | 2 | JWT auth middleware + auth endpoints | api/auth.py (Supabase JWT decode, get_current_user dep), routers/auth.py (register/login/refresh/me with Supabase proxy), dependencies.py updated, B008 suppressed for FastAPI Depends pattern, 884 tests pass |
 | 2026-03-05 | 2 | Player service + DB converters | services/player_service.py (create/read/update CRUD), db/converters.py (bidirectional Pydantic<->SQLAlchemy for player, game_state, monster, economy), auth router refactored to use create_player service, 884 tests pass |
+| 2026-03-05 | 2 | Phase 2 Review complete | All 10 tasks verified: DB models cover 9 tables, Alembic migration matches models, auth flow (register/login/refresh/me) fully implemented, JWT middleware rejects invalid/expired/missing tokens, player CRUD service works, 902 tests pass, ruff clean, no hardcoded secrets |
+| 2026-03-05 | 3 | Save/Load service + endpoints | save_service.py (save/load/version/create_fresh), saves router (POST /, GET /, POST /new, GET /version) with auth, 902 tests pass, ruff clean |
 
 ---
 
