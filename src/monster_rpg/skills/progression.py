@@ -118,14 +118,15 @@ class Skill(BaseModel):
             next_level = self.level + 1
             xp_needed = skill_xp_for_level(next_level)
             if self.experience >= xp_needed:
+                self.experience -= xp_needed
                 self.level = next_level
                 levels_gained.append(next_level)
             else:
                 break
 
-        # Cap XP at max level threshold if at max
+        # Cap leftover XP at max level
         if self.level >= MAX_SKILL_LEVEL:
-            self.experience = skill_xp_for_level(MAX_SKILL_LEVEL)
+            self.experience = 0
 
         return levels_gained
 

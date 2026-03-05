@@ -65,10 +65,10 @@ def calculate_damage(
         defense = def_stats.magic_defense
 
     # Base damage formula (inspired by classic RPG formulas)
-    # Level factor + offense/defense ratio + skill power
+    # Level factor + offense/defense ratio + skill effective power
     level_factor = (2 * attacker.level / 5) + 2
     stat_ratio = offense / max(defense, 1)  # Prevent division by zero
-    base = (level_factor * skill.power * stat_ratio) / 50 + 2
+    base = (level_factor * skill.effective_power() * stat_ratio) / 50 + 2
 
     # Element effectiveness
     element_mult = get_element_multiplier(skill.element, defender.species.element)
@@ -76,9 +76,6 @@ def calculate_damage(
     # STAB (Same Type Attack Bonus) — 1.5x if skill element matches monster element
     stab = 1.5 if skill.element == attacker.species.element else 1.0
 
-    # Skill level bonus (2% per skill level above 1)
-    skill_bonus = 1.0 + (skill.level - 1) * 0.02
-
     # Final calculation
-    damage = int(base * element_mult * stab * skill_bonus * random_factor)
+    damage = int(base * element_mult * stab * random_factor)
     return max(damage, 1)  # Minimum 1 damage

@@ -14,7 +14,6 @@ BASE_ACTION_QUEUE_SLOTS: int = 2
 
 # Skills
 MAX_SKILL_LEVEL: int = 20
-SKILL_MILESTONE_LEVELS: list[int] = [10, 25, 50]
 SKILL_LEVEL_POWER_BONUS: float = 0.02  # 2% per level above 1
 SKILL_LEVEL_COOLDOWN_REDUCTION: float = 0.01  # 1% per level above 1
 SKILL_MIN_COOLDOWN: float = 0.5  # Minimum cooldown in seconds

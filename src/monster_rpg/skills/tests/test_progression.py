@@ -187,11 +187,12 @@ class TestGainExperience:
     def test_gain_multiple_levels(self) -> None:
         """Gaining enough XP for multiple levels at once."""
         skill = _make_skill()
-        # Give enough XP to reach level 5
-        xp_needed = skill_xp_for_level(5)
+        # Give enough XP to reach level 5 (sum of costs for levels 2-5)
+        xp_needed = sum(skill_xp_for_level(lvl) for lvl in range(2, 6))
         levels = skill.gain_experience(xp_needed)
         assert skill.level == 5
         assert levels == [2, 3, 4, 5]
+        assert skill.experience == 0  # Exact amount, no leftover
 
     def test_caps_at_max_level(self) -> None:
         """XP gain should not exceed max skill level."""
@@ -203,22 +204,22 @@ class TestGainExperience:
 
     def test_no_levels_at_max(self) -> None:
         """Gaining XP at max level returns empty list."""
-        skill = _make_skill(level=MAX_SKILL_LEVEL, experience=skill_xp_for_level(MAX_SKILL_LEVEL))
+        skill = _make_skill(level=MAX_SKILL_LEVEL, experience=0)
         levels = skill.gain_experience(100)
         assert levels == []
         assert skill.level == MAX_SKILL_LEVEL
 
     def test_leftover_xp_retained(self) -> None:
-        """XP beyond level threshold should be retained."""
+        """XP beyond level threshold should be retained after subtraction."""
         skill = _make_skill()
         xp_for_2 = skill_xp_for_level(2)
         xp_for_3 = skill_xp_for_level(3)
         # Give enough for level 2 plus a bit extra (but not enough for 3)
-        extra = (xp_for_3 - xp_for_2) // 2
+        extra = xp_for_3 // 2  # Some XP that won't reach level 3
         total_xp = xp_for_2 + extra
         skill.gain_experience(total_xp)
         assert skill.level == 2
-        assert skill.experience == total_xp  # All XP retained
+        assert skill.experience == extra  # Leftover after subtracting xp_for_2
 
     def test_negative_xp_raises(self) -> None:
         """Negative XP should raise ValueError."""
