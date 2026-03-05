@@ -2,7 +2,7 @@
 
 from enum import StrEnum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class LifeSkillType(StrEnum):
@@ -67,7 +67,7 @@ class LifeSkill(BaseModel):
 
         0.5% faster per level above 1. Level 50 = 24.5% faster.
         """
-        return 1.0 - (self.level - 1) * 0.005
+        return max(1.0 - (self.level - 1) * 0.005, 0.1)
 
 
 class LifeSkillAction(BaseModel):
@@ -84,6 +84,14 @@ class LifeSkillAction(BaseModel):
         default_factory=dict,
         description="resource_id -> quantity required",
     )
+
+    @model_validator(mode="after")
+    def validate_material_quantities(self) -> "LifeSkillAction":
+        """Ensure all required material quantities are >= 1."""
+        for mat_id, qty in self.required_materials.items():
+            if qty < 1:
+                raise ValueError(f"Material '{mat_id}' quantity must be >= 1, got {qty}")
+        return self
 
 
 def calculate_action_duration(

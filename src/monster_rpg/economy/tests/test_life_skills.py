@@ -205,6 +205,17 @@ class TestLifeSkillAction:
                 xp_reward=0,
             )
 
+    def test_life_skill_action_zero_material_raises(self) -> None:
+        with pytest.raises(ValidationError, match="quantity must be >= 1"):
+            LifeSkillAction(
+                action_id="cook_steak",
+                name="Cook Steak",
+                skill_type=LifeSkillType.COOKING,
+                base_duration_seconds=15.0,
+                xp_reward=20,
+                required_materials={"raw_meat": 0},
+            )
+
     def test_required_materials(self) -> None:
         action = LifeSkillAction(
             action_id="cook_steak",

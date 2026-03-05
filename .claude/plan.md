@@ -3,7 +3,7 @@
 ## Status
 - **Phase**: implement (Phase 3 — Economy & Idle)
 - **Status**: active
-- **Progress**: 3/4 tasks complete
+- **Progress**: 4/4 tasks complete
 - **Last Updated**: 2026-03-04
 
 ## Feature Scope
@@ -68,7 +68,7 @@ Implement the economy and idle game systems on top of the Phase 1 foundation mod
 - [x] `implementation-agent` | Implement Idle system — fastest clear time tracking, BRPM calculation, 85% idle rate, 8hr offline cap, offline gains calculation | complete
 - [x] `implementation-agent` | Implement Life Skills — Mining, Cooking, Strategy Training with XP/leveling, resource yields, permanent progression | complete
 - [x] `implementation-agent` | Implement Unified Action Queue — crafting, cooking, training actions with 2 base slots, upgradeable to 6-8, queue management | complete
-- [ ] `implementation-agent` | Implement Economy Manager — materials/resources tracking, crafting recipes, gold/gem transactions, no direct stat purchases | pending
+- [x] `implementation-agent` | Implement Economy Manager — materials/resources tracking, crafting recipes, gold/gem transactions, no direct stat purchases | complete
 
 ### Phase 3 — Review
 - [ ] `review-agent` | Test verification and code quality review | pending
@@ -95,3 +95,4 @@ None
 | 2026-03-04 | implementation-agent | Fix 3 blocking Phase 2 review issues | complete | (1) Skill.gain_experience() now subtracts XP per level-up matching Monster/Strategy pattern. (2) damage_calc uses skill.effective_power() — removed duplicate skill_bonus multiplier. (3) Removed unused SKILL_MILESTONE_LEVELS constant. 269 tests pass, ruff clean. |
 | 2026-03-04 | implementation-agent | Implement Idle system | complete | IdleTracker with per-area best clear time recording, BRPM calculation, 85% idle efficiency rate. OfflineGainsResult with 8hr cap, configurable reward rates. AreaClearRecord with validation. 32 new tests (301 total passing), ruff clean. |
 | 2026-03-04 | implementation-agent | Implement Unified Action Queue | complete | ActionQueue with QueuedAction model, 5 ActionTypes (craft/cook/mine/train_strategy/train_skill), auto-start on add, advance/cancel/clear operations, 2 base slots expandable to 8. 38 new tests (413 total passing), ruff clean. |
+| 2026-03-04 | implementation-agent | Implement Economy Manager | complete | Material, CraftingRecipe, Inventory models with full CRUD. EconomyManager with gold/gem spend/earn and CurrencyTransaction logging. Inventory supports add/remove/has_materials, can_craft/execute_craft functions. 62 economy tests (433 total passing), ruff clean. |

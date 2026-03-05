@@ -46,88 +46,77 @@ class CurrencyTransaction(BaseModel):
     balance_after: int = Field(ge=0)
 
 
-class EconomyManager:
+class EconomyManager(BaseModel):
     """Manages player economy — gold, gems, transactions."""
 
-    def __init__(self) -> None:
-        self.transaction_log: list[CurrencyTransaction] = []
+    gold: int = Field(default=0, ge=0)
+    gems: int = Field(default=0, ge=0)
+    transaction_log: list[CurrencyTransaction] = Field(default_factory=list)
 
-    def spend_gold(self, player_gold: int, amount: int, reason: str) -> tuple[bool, int]:
-        """Attempt to spend gold.
-
-        Returns:
-            (success, new_balance)
-        """
+    def spend_gold(self, amount: int, reason: str) -> bool:
+        """Attempt to spend gold. Returns True if successful."""
         if amount <= 0:
             raise ValueError("Amount must be positive")
-        if player_gold < amount:
-            return False, player_gold
-        new_balance = player_gold - amount
+        if self.gold < amount:
+            return False
+        self.gold -= amount
         self.transaction_log.append(
             CurrencyTransaction(
                 transaction_id=f"gold_{len(self.transaction_log)}",
                 currency_type="gold",
                 amount=-amount,
                 reason=reason,
-                balance_after=new_balance,
+                balance_after=self.gold,
             )
         )
-        return True, new_balance
+        return True
 
-    def earn_gold(self, player_gold: int, amount: int, reason: str) -> int:
-        """Add gold to player balance.
-
-        Returns:
-            New balance.
-        """
+    def earn_gold(self, amount: int, reason: str) -> int:
+        """Add gold. Returns new balance."""
         if amount <= 0:
             raise ValueError("Amount must be positive")
-        new_balance = player_gold + amount
+        self.gold += amount
         self.transaction_log.append(
             CurrencyTransaction(
                 transaction_id=f"gold_{len(self.transaction_log)}",
                 currency_type="gold",
                 amount=amount,
                 reason=reason,
-                balance_after=new_balance,
+                balance_after=self.gold,
             )
         )
-        return new_balance
+        return self.gold
 
-    def spend_gems(self, player_gems: int, amount: int, reason: str) -> tuple[bool, int]:
-        """Attempt to spend premium currency (gems).
-
-        Returns:
-            (success, new_balance)
-        """
+    def spend_gems(self, amount: int, reason: str) -> bool:
+        """Attempt to spend gems. Returns True if successful."""
         if amount <= 0:
             raise ValueError("Amount must be positive")
-        if player_gems < amount:
-            return False, player_gems
-        new_balance = player_gems - amount
+        if self.gems < amount:
+            return False
+        self.gems -= amount
         self.transaction_log.append(
             CurrencyTransaction(
                 transaction_id=f"gems_{len(self.transaction_log)}",
                 currency_type="gems",
                 amount=-amount,
                 reason=reason,
-                balance_after=new_balance,
+                balance_after=self.gems,
             )
         )
-        return True, new_balance
+        return True
 
-    def earn_gems(self, player_gems: int, amount: int, reason: str) -> int:
+    def earn_gems(self, amount: int, reason: str) -> int:
         """Add gems. Returns new balance."""
         if amount <= 0:
             raise ValueError("Amount must be positive")
-        new_balance = player_gems + amount
+        self.gems += amount
         self.transaction_log.append(
             CurrencyTransaction(
                 transaction_id=f"gems_{len(self.transaction_log)}",
                 currency_type="gems",
                 amount=amount,
                 reason=reason,
-                balance_after=new_balance,
+                balance_after=self.gems,
             )
         )
-        return new_balance
+        return self.gems

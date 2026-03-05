@@ -125,6 +125,26 @@ class TestQueuedActionConstruction:
                 duration_seconds=0.0,
             )
 
+    def test_queued_action_zero_material_raises(self) -> None:
+        with pytest.raises(ValueError, match="quantity must be >= 1"):
+            QueuedAction(
+                action_id="a1",
+                action_type=ActionType.CRAFT,
+                name="Bad",
+                duration_seconds=10.0,
+                required_materials={"iron": 0},
+            )
+
+    def test_queued_action_zero_reward_resource_raises(self) -> None:
+        with pytest.raises(ValueError, match="quantity must be >= 1"):
+            QueuedAction(
+                action_id="a1",
+                action_type=ActionType.CRAFT,
+                name="Bad",
+                duration_seconds=10.0,
+                reward_resources={"sword": 0},
+            )
+
 
 # ---------------------------------------------------------------------------
 # QueuedAction — Properties
@@ -476,6 +496,14 @@ class TestActionQueueExpand:
         new_max = queue.expand_slots(100)
         assert new_max == 8
         assert queue.max_slots == 8
+
+    def test_expand_slots_zero_raises(self, queue: ActionQueue) -> None:
+        with pytest.raises(ValueError, match="positive"):
+            queue.expand_slots(0)
+
+    def test_expand_slots_negative_raises(self, queue: ActionQueue) -> None:
+        with pytest.raises(ValueError, match="positive"):
+            queue.expand_slots(-3)
 
     def test_expand_slots_allows_more_actions(self, queue: ActionQueue) -> None:
         queue.expand_slots(2)  # now 4 slots

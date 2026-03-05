@@ -1,6 +1,6 @@
 """Crafting system — recipes and material transformation."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class Material(BaseModel):
@@ -26,6 +26,14 @@ class CraftingRecipe(BaseModel):
     required_skill_level: int = Field(default=1, ge=1)
     craft_duration_seconds: float = Field(default=30.0, gt=0)
     xp_reward: int = Field(default=10, ge=0)
+
+    @model_validator(mode="after")
+    def validate_material_quantities(self) -> "CraftingRecipe":
+        """Ensure all required material quantities are >= 1."""
+        for mat_id, qty in self.required_materials.items():
+            if qty < 1:
+                raise ValueError(f"Material '{mat_id}' quantity must be >= 1, got {qty}")
+        return self
 
 
 class Inventory(BaseModel):
@@ -83,16 +91,21 @@ def can_craft(inventory: Inventory, recipe: CraftingRecipe) -> bool:
 def execute_craft(inventory: Inventory, recipe: CraftingRecipe) -> bool:
     """Execute a crafting recipe — consume materials, produce output.
 
+    Uses snapshot/rollback for atomicity: if any step fails after the
+    pre-check, the inventory is restored to its original state.
+
     Returns:
         True if crafted successfully, False if insufficient materials.
     """
     if not can_craft(inventory, recipe):
         return False
 
-    # Remove input materials
-    for mat_id, qty in recipe.required_materials.items():
-        inventory.remove_material(mat_id, qty)
-
-    # Add output
-    inventory.add_material(recipe.output_material_id, recipe.output_quantity)
+    snapshot = dict(inventory.items)
+    try:
+        for mat_id, qty in recipe.required_materials.items():
+            inventory.remove_material(mat_id, qty)
+        inventory.add_material(recipe.output_material_id, recipe.output_quantity)
+    except Exception:
+        inventory.items = snapshot
+        return False
     return True

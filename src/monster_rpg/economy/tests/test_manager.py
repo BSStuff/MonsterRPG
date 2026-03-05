@@ -158,78 +158,87 @@ class TestEconomyManager:
 
     def test_construction(self) -> None:
         mgr = EconomyManager()
+        assert mgr.gold == 0
+        assert mgr.gems == 0
         assert mgr.transaction_log == []
 
+    def test_construction_with_balances(self) -> None:
+        mgr = EconomyManager(gold=1000, gems=500)
+        assert mgr.gold == 1000
+        assert mgr.gems == 500
+
     def test_spend_gold_success(self) -> None:
-        mgr = EconomyManager()
-        success, balance = mgr.spend_gold(1000, 200, "Buy sword")
-        assert success is True
-        assert balance == 800
+        mgr = EconomyManager(gold=1000)
+        result = mgr.spend_gold(200, "Buy sword")
+        assert result is True
+        assert mgr.gold == 800
 
     def test_spend_gold_insufficient(self) -> None:
-        mgr = EconomyManager()
-        success, balance = mgr.spend_gold(50, 200, "Buy sword")
-        assert success is False
-        assert balance == 50
+        mgr = EconomyManager(gold=50)
+        result = mgr.spend_gold(200, "Buy sword")
+        assert result is False
+        assert mgr.gold == 50
 
     def test_spend_gold_exact_amount(self) -> None:
-        mgr = EconomyManager()
-        success, balance = mgr.spend_gold(100, 100, "Exact purchase")
-        assert success is True
-        assert balance == 0
+        mgr = EconomyManager(gold=100)
+        result = mgr.spend_gold(100, "Exact purchase")
+        assert result is True
+        assert mgr.gold == 0
 
     def test_spend_gold_zero_raises(self) -> None:
-        mgr = EconomyManager()
+        mgr = EconomyManager(gold=100)
         with pytest.raises(ValueError, match="positive"):
-            mgr.spend_gold(100, 0, "bad")
+            mgr.spend_gold(0, "bad")
 
     def test_spend_gold_negative_raises(self) -> None:
-        mgr = EconomyManager()
+        mgr = EconomyManager(gold=100)
         with pytest.raises(ValueError, match="positive"):
-            mgr.spend_gold(100, -5, "bad")
+            mgr.spend_gold(-5, "bad")
 
     def test_earn_gold(self) -> None:
-        mgr = EconomyManager()
-        new_balance = mgr.earn_gold(500, 150, "Monster drop")
+        mgr = EconomyManager(gold=500)
+        new_balance = mgr.earn_gold(150, "Monster drop")
         assert new_balance == 650
+        assert mgr.gold == 650
 
     def test_earn_gold_zero_raises(self) -> None:
-        mgr = EconomyManager()
+        mgr = EconomyManager(gold=100)
         with pytest.raises(ValueError, match="positive"):
-            mgr.earn_gold(100, 0, "bad")
+            mgr.earn_gold(0, "bad")
 
     def test_spend_gems_success(self) -> None:
-        mgr = EconomyManager()
-        success, balance = mgr.spend_gems(100, 30, "Queue slot")
-        assert success is True
-        assert balance == 70
+        mgr = EconomyManager(gems=100)
+        result = mgr.spend_gems(30, "Queue slot")
+        assert result is True
+        assert mgr.gems == 70
 
     def test_spend_gems_insufficient(self) -> None:
-        mgr = EconomyManager()
-        success, balance = mgr.spend_gems(10, 50, "Queue slot")
-        assert success is False
-        assert balance == 10
+        mgr = EconomyManager(gems=10)
+        result = mgr.spend_gems(50, "Queue slot")
+        assert result is False
+        assert mgr.gems == 10
 
     def test_spend_gems_zero_raises(self) -> None:
-        mgr = EconomyManager()
+        mgr = EconomyManager(gems=100)
         with pytest.raises(ValueError, match="positive"):
-            mgr.spend_gems(100, 0, "bad")
+            mgr.spend_gems(0, "bad")
 
     def test_earn_gems(self) -> None:
-        mgr = EconomyManager()
-        new_balance = mgr.earn_gems(50, 25, "Daily login")
+        mgr = EconomyManager(gems=50)
+        new_balance = mgr.earn_gems(25, "Daily login")
         assert new_balance == 75
+        assert mgr.gems == 75
 
     def test_earn_gems_zero_raises(self) -> None:
-        mgr = EconomyManager()
+        mgr = EconomyManager(gems=50)
         with pytest.raises(ValueError, match="positive"):
-            mgr.earn_gems(50, 0, "bad")
+            mgr.earn_gems(0, "bad")
 
     def test_transaction_log_records(self) -> None:
         mgr = EconomyManager()
-        mgr.earn_gold(0, 500, "Starting gold")
-        mgr.spend_gold(500, 100, "Buy potion")
-        mgr.earn_gems(0, 50, "Daily reward")
+        mgr.earn_gold(500, "Starting gold")
+        mgr.spend_gold(100, "Buy potion")
+        mgr.earn_gems(50, "Daily reward")
         assert len(mgr.transaction_log) == 3
         assert mgr.transaction_log[0].currency_type == "gold"
         assert mgr.transaction_log[0].amount == 500
@@ -238,7 +247,7 @@ class TestEconomyManager:
 
     def test_transaction_ids_unique(self) -> None:
         mgr = EconomyManager()
-        mgr.earn_gold(0, 100, "a")
-        mgr.earn_gold(100, 200, "b")
+        mgr.earn_gold(100, "a")
+        mgr.earn_gold(200, "b")
         ids = [t.transaction_id for t in mgr.transaction_log]
         assert len(ids) == len(set(ids))

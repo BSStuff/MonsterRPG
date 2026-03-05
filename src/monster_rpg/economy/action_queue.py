@@ -2,7 +2,7 @@
 
 from enum import StrEnum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from monster_rpg.config import BASE_ACTION_QUEUE_SLOTS
 
@@ -39,6 +39,17 @@ class QueuedAction(BaseModel):
     required_materials: dict[str, int] = Field(default_factory=dict)
     reward_xp: int = Field(default=0, ge=0)
     reward_resources: dict[str, int] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_resource_quantities(self) -> "QueuedAction":
+        """Ensure all material/resource quantities are >= 1."""
+        for mat_id, qty in self.required_materials.items():
+            if qty < 1:
+                raise ValueError(f"Material '{mat_id}' quantity must be >= 1, got {qty}")
+        for res_id, qty in self.reward_resources.items():
+            if qty < 1:
+                raise ValueError(f"Resource '{res_id}' quantity must be >= 1, got {qty}")
+        return self
 
     @property
     def is_complete(self) -> bool:
@@ -152,6 +163,11 @@ class ActionQueue(BaseModel):
 
         Returns:
             New max_slots value.
+
+        Raises:
+            ValueError: If additional is not positive.
         """
+        if additional <= 0:
+            raise ValueError("Additional slots must be positive")
         self.max_slots = min(self.max_slots + additional, 8)
         return self.max_slots

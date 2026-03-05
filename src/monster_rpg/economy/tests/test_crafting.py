@@ -113,6 +113,14 @@ class TestCraftingRecipe:
         with pytest.raises(ValidationError):
             _make_recipe(craft_duration_seconds=0)
 
+    def test_crafting_recipe_zero_material_quantity_raises(self) -> None:
+        with pytest.raises(ValidationError, match="quantity must be >= 1"):
+            _make_recipe(required_materials={"mat_wood": 0})
+
+    def test_crafting_recipe_negative_material_quantity_raises(self) -> None:
+        with pytest.raises(ValidationError, match="quantity must be >= 1"):
+            _make_recipe(required_materials={"mat_wood": -5})
+
 
 # --- Inventory Tests ---
 
