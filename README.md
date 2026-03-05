@@ -1,6 +1,6 @@
-# Monster Survival RPG — Backend
+# ElementsRPG — Backend
 
-Hybrid Active + Idle Monster Survival RPG backend. Auto-combat survival, monster collection/taming, persistent skill progression, strategy AI customization, life skills economy.
+Hybrid Active + Idle ElementsRPG backend. Auto-combat survival, monster collection/taming, persistent skill progression, strategy AI customization, life skills economy.
 
 ## Tech Stack
 
@@ -22,13 +22,13 @@ uv run ruff check src/
 uv run ruff format src/
 
 # Type checking
-uv run mypy src/monster_rpg/
+uv run mypy src/elements_rpg/
 ```
 
 ## Project Structure
 
 ```
-src/monster_rpg/
+src/elements_rpg/
 ├── main.py          # Entry point
 ├── config.py        # Game constants
 ├── player.py        # Player model
