@@ -1,39 +1,49 @@
-# Feature: Monster Survival RPG — Phase 4 Team & Areas
+# Feature: Monster Survival RPG — Phase 5 Monetization & Polish
 
 ## Status
-- **Phase**: done (Phase 4 — Team & Areas)
-- **Status**: complete
-- **Progress**: 3/3 tasks complete, review done
+- **Phase**: implement (Phase 5 — Monetization & Polish)
+- **Status**: active
+- **Progress**: 0/4 tasks complete
 - **Last Updated**: 2026-03-04
 
 ## Feature Scope
-Implement the team composition and area/monster content systems on top of Phases 1-3:
-- Team system with up to 6 monsters, team management (add/remove/reorder), team validation, suggested composition roles
-- 2 MVP Areas with exclusive monsters, exclusive materials, difficulty scaling, area-specific drop tables
-- 12 MVP Monsters with unique skills, traits, elements, stats, and taming difficulties
+Implement monetization systems and save/load persistence on top of Phases 1-4:
+- Premium Currency (Gems) system with gem packages, gem-purchasable upgrades, price catalog
+- Reward Ads hooks for revive, idle boost, taming bonus, resource boost with cooldowns/limits
+- Subscription tier logic with monthly benefits (extra queue slot, increased offline cap, cosmetics)
+- Save/Load system with cloud-ready serialization of all player data
 
 ## Key PRD Specs
 
-### Team System (PRD Section 9)
-- **Max Monsters per Team: 6**
-- Suggested Composition: 1 Tank, 1 Off-Tank, 2 DPS, 1 Main Support, 1 Flex Support
-- **Multiple Teams** unlockable via upgrades (gem purchases)
-- Team selection is Step 1 of the core gameplay loop
+### Premium Currency — Gems (PRD Section 10.2)
+- **Used for**: Team slot expansion, Action queue expansion, Offline cap expansion, Inventory expansion, Cosmetic purchases, Convenience boosts
+- **No direct stat purchases** — convenience only
+- Gem packages (purchasable bundles of gems at different price points)
+- Price catalog mapping gem costs to each upgrade type
 
-### Areas & Taming (PRD Section 6)
-- Each area includes:
-  - **Exclusive monsters** (only found in that area)
-  - **Exclusive materials** (only drop in that area)
-  - **Difficulty scaling** (enemy levels, stats, encounter rates)
-  - **Taming base rate** (per-area modifier for capture chance)
-- Area is the unit for idle tracking (BRPM, fastest clear time)
-- MVP scope: **2 Areas**
+### Reward Ads (PRD Section 10.1)
+- **Optional only** — no forced pop-ups
+- Ad reward types:
+  - **Revive**: Restore team after wipe
+  - **+25% idle gains**: Temporary boost to idle rate
+  - **Bonus taming attempt**: Extra tame chance after failure
+  - **Temporary resource boost**: Increased drop rates
+- Must include cooldowns and daily limits per ad type
 
-### Monsters (PRD Section 3.1 + 11)
-- MVP scope: **12 Monsters** across 2 areas
-- Each monster has: Level, Bond Level, 4 Active Skills, Passive Trait, 6 stats (HP/ATK/DEF/SpATK/SpDEF/Speed), Strategy Profile, Taming Difficulty
-- Monsters are area-exclusive (split across the 2 MVP areas)
-- Rarity tiers affect base capture rates and stat scaling
+### Subscription Tiers (PRD Section 10.3)
+- **Duration options**: 30-Day / 90-Day / 1-Year
+- **Benefits**:
+  - Ad removal
+  - +10% idle cap (8hr base -> 8.8hr)
+  - +1 action queue slot
+  - Daily gem stipend
+  - Exclusive cosmetics
+- **Power advantage capped** at minor convenience levels
+
+### Save/Load System (PRD Section 12)
+- Cloud-ready serialization
+- Must persist ALL player data: monsters (level, bond, skills, strategy profiles), inventory (materials, gold, gems), progress (area clears, BRPM records, life skill levels), economy (transaction history, crafting state), team composition, action queue state, subscription/ad state
+- Versioned save format for future migration support
 
 ## Tasks
 
@@ -68,7 +78,7 @@ Implement the team composition and area/monster content systems on top of Phases
 - [x] `review-agent` | Test verification and code quality review | complete
 - [x] `blocking-pr-critic` | Final approval of Phase 3 — 5 review fixes applied | complete
 
-### Phase 4 — Team & Areas (Implementation)
+### Phase 4 — Team & Areas (Complete)
 - [x] `implementation-agent` | Implement Team system — team composition up to 6 monsters, team management (add/remove/reorder), team validation, suggested composition roles (Tank/Off-Tank/DPS/Support/Flex), multiple teams unlockable via upgrades | complete
 - [x] `implementation-agent` | Create 2 MVP Areas with exclusive monsters/materials, difficulty scaling, area-specific drop tables, taming base rates, idle tracking integration | complete
 - [x] `implementation-agent` | Design and implement 12 MVP Monsters with unique skills, traits, elements, stats, taming difficulties, and area assignments | complete
@@ -76,6 +86,16 @@ Implement the team composition and area/monster content systems on top of Phases
 ### Phase 4 — Review (Complete)
 - [x] `review-agent` | Test verification and code quality review | complete
 - [x] `blocking-pr-critic` | Final approval of Phase 4 — 3 review fixes applied | complete
+
+### Phase 5 — Monetization & Polish (Implementation)
+- [x] `implementation-agent` | Implement Premium Currency (Gems) system — gem packages, gem-purchasable upgrades (queue slots, offline cap, inventory), price catalog | complete
+- [ ] `implementation-agent` | Implement Reward Ads hooks — revive, idle boost (+25%), taming bonus, resource boost, with cooldowns and limits | pending
+- [ ] `implementation-agent` | Implement Subscription tier logic — monthly sub with benefits (extra queue slot, increased offline cap, cosmetics) | pending
+- [ ] `implementation-agent` | Implement Save/Load system — cloud-ready serialization of all player data (monsters, inventory, progress, economy) | pending
+
+### Phase 5 — Review
+- [ ] `review-agent` | Test verification and code quality | pending
+- [ ] `blocking-pr-critic` | Final approval of Phase 5 | pending
 
 ## Blockers
 None
