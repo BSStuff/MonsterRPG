@@ -82,7 +82,7 @@ All modules live under `src/elements_rpg/` and need API endpoints:
 - [x] `implementation-agent` | Create auth router endpoints: `POST /auth/register` (calls Supabase Auth, creates player profile), `POST /auth/login` (proxy to Supabase Auth), `POST /auth/refresh` (token refresh), `GET /auth/me` (current user profile) | complete
 - [x] `implementation-agent` | Create player CRUD service: `src/elements_rpg/services/player_service.py` -- create, read, update player profile in PostgreSQL, bridge between Pydantic and SQLAlchemy models | complete
 - [x] `implementation-agent` | Create Pydantic <-> SQLAlchemy conversion utilities in `src/elements_rpg/db/converters.py` -- bidirectional mapping for all model pairs | complete
-- [ ] `test-agent` | Write integration tests for auth flow (register, login, JWT verification, protected endpoint access) using httpx async client | pending
+- [x] `test-agent` | Write integration tests for auth flow (register, login, JWT verification, protected endpoint access) using httpx async client | complete
 - [ ] `review-agent` | Review Phase 2: verify migrations run cleanly, auth flow works end-to-end, player CRUD persists to PostgreSQL, JWT middleware rejects invalid tokens | pending
 
 **Dependencies**: Phase 1 complete (FastAPI app exists to attach auth to).
