@@ -1,6 +1,5 @@
 """Tests for damage calculation logic."""
 
-
 from monster_rpg.combat.damage_calc import (
     ELEMENT_CHART,
     calculate_damage,

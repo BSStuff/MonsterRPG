@@ -1,6 +1,5 @@
 """Tests for the combat manager."""
 
-
 from monster_rpg.combat.manager import (
     CombatManager,
 )

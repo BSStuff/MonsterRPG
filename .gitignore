@@ -1,3 +1,18 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*~
+
 # Python-generated files
 __pycache__/
 *.py[oc]
@@ -8,3 +23,10 @@ wheels/
 
 # Virtual environments
 .venv
+.env
+
+# LLM and AI tool directories
+.llm/
+.claude/
+.cursor/
+CLAUDE.md

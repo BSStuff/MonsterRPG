@@ -1,9 +1,9 @@
 # Feature: Monster Survival RPG — Phase 2 Core Systems
 
 ## Status
-- **Phase**: implement (Phase 2 — Core Systems)
-- **Status**: active
-- **Progress**: 5/5 tasks complete
+- **Phase**: done (Phase 2 — Core Systems)
+- **Status**: complete
+- **Progress**: 5/5 tasks complete + review fixes applied
 - **Last Updated**: 2026-03-04
 
 ## Feature Scope
@@ -35,7 +35,7 @@ Implement the core game systems on top of the Phase 1 foundation models:
 
 ### Phase 2 — Review
 - [x] `review-agent` | Test verification and code quality review | complete
-- [ ] `blocking-pr-critic` | Final approval of Phase 2 | pending
+- [x] `blocking-pr-critic` | Final approval of Phase 2 — 3 review fixes applied | complete
 
 ## Blockers
 None
@@ -55,3 +55,4 @@ None
 | 2026-03-04 | implementation-agent | Implement Strategy AI system | complete | Updated StrategyType enum to PRD's 5 strategies (ATTACK_NEAREST, FOLLOW_PLAYER, DEFENSIVE, AGGRESSIVE, HEAL_LOWEST). Added gain_experience()/check_mastery() to StrategyProfile with XP formula int(200*level^1.2). Created strategy_ai.py with StrategyBehavior dataclass, behavior definitions, and select_target_by_strategy(). 42 new/updated tests (227 total passing), ruff clean. |
 | 2026-03-04 | implementation-agent | Implement Taming system | complete | BASE_CAPTURE_RATES per rarity, FoodItem model with favorite elements, TamingTracker for per-species pity tracking, calculate_pity_bonus() with soft pity after 50 attempts, calculate_tame_chance() with HP modifier/food/skill bonuses, attempt_tame() integration function. 42 new tests (269 total passing), ruff clean. |
 | 2026-03-04 | review-agent | Phase 2 code quality review | complete | SHIP-READY. 269 tests pass, 99% coverage (5 lines missed), ruff check + format clean. 1 fix applied: acknowledged unused proficiency param in strategy_ai.py with TODO. No blockers, no security issues. 3 MEDIUM findings (proficiency not wired, unreachable fallback in strategy_ai, combat manager lines 183/187 untested). 2 LOW findings (skill gain_experience rejects 0 xp unlike monster version, combat manager doesn't integrate strategy AI targeting). |
+| 2026-03-04 | implementation-agent | Fix 3 blocking Phase 2 review issues | complete | (1) Skill.gain_experience() now subtracts XP per level-up matching Monster/Strategy pattern. (2) damage_calc uses skill.effective_power() — removed duplicate skill_bonus multiplier. (3) Removed unused SKILL_MILESTONE_LEVELS constant. 269 tests pass, ruff clean. |

@@ -305,6 +305,7 @@ This project may have hooks that auto-format code after writes. If a tool call b
 |------|-----------------|---------------|-------|
 | 2026-03-04 | Project init, CLAUDE.md + KNOWLEDGE_BASE.md created | CLAUDE.md, .claude/KNOWLEDGE_BASE.md | Fresh project setup |
 | 2026-03-04 | Phase 1 Foundation complete — pyproject.toml, project structure, Pydantic models, review fixes | pyproject.toml, src/monster_rpg/** (36+ files), README.md, .claude/plan.md | 74 tests passing, 99% coverage, all review issues resolved |
+| 2026-03-04 | Phase 2 Core Systems — Combat Manager, Monster progression, Skill system, Strategy AI, Taming system | src/monster_rpg/combat/*, src/monster_rpg/monsters/*, src/monster_rpg/skills/*, config.py | 269 tests passing, 99% coverage, all review issues resolved |
 
 ---
 
@@ -323,11 +324,11 @@ This project may have hooks that auto-format code after writes. If a tool call b
 - [x] Create base Pydantic models for Monster, Skill, Area, Player
 
 #### Phase 2 — Core Systems
-- [ ] Implement Combat Manager (auto-combat, damage calc, HP/stats)
-- [ ] Implement Monster models (level, bond, 4 skills, passive trait, stats, strategy profile)
-- [ ] Implement Skill system (4 equipped skills, leveling via usage, milestone upgrades)
-- [ ] Implement Strategy AI system (5 base strategies, proficiency levels, mastery)
-- [ ] Implement Taming system (base rate, food bonus, skill modifier, soft pity)
+- [x] Implement Combat Manager (auto-combat, damage calc, HP/stats)
+- [x] Implement Monster models (level, bond, 4 skills, passive trait, stats, strategy profile)
+- [x] Implement Skill system (4 equipped skills, leveling via usage, milestone upgrades)
+- [x] Implement Strategy AI system (5 base strategies, proficiency levels, mastery)
+- [x] Implement Taming system (base rate, food bonus, skill modifier, soft pity)
 
 #### Phase 3 — Economy & Idle
 - [ ] Implement Idle system (fastest clear time, BRPM, 85% idle rate, 8hr offline cap)
