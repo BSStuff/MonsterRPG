@@ -50,8 +50,14 @@ Each module follows vertical slice architecture with co-located tests.
 - **Strategy AI**: 5 base strategies (Aggressive, Defensive, Balanced, Healing, Random) with proficiency tracking and mastery progression
 - **Taming System**: Dynamic base rates, food & skill modifiers, soft pity mechanics
 
+**Phase 3 Implementation Complete:**
+- **Idle System**: Offline progression with fastest clear time tracking, Base Runs Per Minute (BRPM) calculation, 85% idle rate, 8-hour offline cap
+- **Life Skills**: Mining, Cooking, and Strategy Training skill progression with proficiency levels
+- **Unified Action Queue**: 2-slot action queue supporting crafting, cooking, and strategy training tasks
+- **Economy Manager**: Material inventory tracking, crafting recipes, resource management system
+
 ## Development
 
-- 269 tests with 99% coverage
+- 441 tests with 99% coverage
 - Ruff for linting (line-length=100, double quotes)
 - Mypy strict mode for type checking
