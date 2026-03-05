@@ -136,46 +136,60 @@ class TestPlayerSubscription:
         return PlayerSubscription()
 
     def test_is_active_when_active(self, active_sub: PlayerSubscription) -> None:
-        assert active_sub.is_active is True
+        assert active_sub.is_active(current_time=1500.0) is True
 
     def test_is_active_when_inactive(self, inactive_sub: PlayerSubscription) -> None:
-        assert inactive_sub.is_active is False
+        assert inactive_sub.is_active(current_time=1500.0) is False
 
     def test_is_active_with_plan_but_zero_end(self, monthly_plan: SubscriptionPlan) -> None:
         sub = PlayerSubscription(active_plan=monthly_plan, end_timestamp=0)
-        assert sub.is_active is False
+        assert sub.is_active(current_time=0.0) is False
+
+    def test_is_active_expired(self, active_sub: PlayerSubscription) -> None:
+        """Subscription should be inactive when current_time >= end_timestamp."""
+        assert active_sub.is_active(current_time=2000.0) is False
+        assert active_sub.is_active(current_time=3000.0) is False
 
     def test_get_benefits_when_active(self, active_sub: PlayerSubscription) -> None:
-        benefits = active_sub.get_benefits()
+        benefits = active_sub.get_benefits(current_time=1500.0)
         assert benefits is not None
         assert benefits.ad_removal is True
 
     def test_get_benefits_when_inactive(self, inactive_sub: PlayerSubscription) -> None:
-        assert inactive_sub.get_benefits() is None
+        assert inactive_sub.get_benefits(current_time=1500.0) is None
+
+    def test_get_benefits_when_expired(self, active_sub: PlayerSubscription) -> None:
+        assert active_sub.get_benefits(current_time=5000.0) is None
 
     def test_get_idle_cap_bonus_active(self, active_sub: PlayerSubscription) -> None:
-        assert active_sub.get_idle_cap_bonus() == 0.8
+        assert active_sub.get_idle_cap_bonus(current_time=1500.0) == 0.8
 
     def test_get_idle_cap_bonus_inactive(self, inactive_sub: PlayerSubscription) -> None:
-        assert inactive_sub.get_idle_cap_bonus() == 0.0
+        assert inactive_sub.get_idle_cap_bonus(current_time=1500.0) == 0.0
+
+    def test_get_idle_cap_bonus_expired(self, active_sub: PlayerSubscription) -> None:
+        assert active_sub.get_idle_cap_bonus(current_time=5000.0) == 0.0
 
     def test_get_queue_slot_bonus_active(self, active_sub: PlayerSubscription) -> None:
-        assert active_sub.get_queue_slot_bonus() == 1
+        assert active_sub.get_queue_slot_bonus(current_time=1500.0) == 1
 
     def test_get_queue_slot_bonus_inactive(self, inactive_sub: PlayerSubscription) -> None:
-        assert inactive_sub.get_queue_slot_bonus() == 0
+        assert inactive_sub.get_queue_slot_bonus(current_time=1500.0) == 0
 
     def test_get_daily_gem_stipend_active(self, active_sub: PlayerSubscription) -> None:
-        assert active_sub.get_daily_gem_stipend() == 50
+        assert active_sub.get_daily_gem_stipend(current_time=1500.0) == 50
 
     def test_get_daily_gem_stipend_inactive(self, inactive_sub: PlayerSubscription) -> None:
-        assert inactive_sub.get_daily_gem_stipend() == 0
+        assert inactive_sub.get_daily_gem_stipend(current_time=1500.0) == 0
 
     def test_has_ad_removal_active(self, active_sub: PlayerSubscription) -> None:
-        assert active_sub.has_ad_removal() is True
+        assert active_sub.has_ad_removal(current_time=1500.0) is True
 
     def test_has_ad_removal_inactive(self, inactive_sub: PlayerSubscription) -> None:
-        assert inactive_sub.has_ad_removal() is False
+        assert inactive_sub.has_ad_removal(current_time=1500.0) is False
+
+    def test_has_ad_removal_expired(self, active_sub: PlayerSubscription) -> None:
+        assert active_sub.has_ad_removal(current_time=5000.0) is False
 
 
 # ==========================================

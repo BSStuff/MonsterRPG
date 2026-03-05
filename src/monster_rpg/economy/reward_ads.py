@@ -69,16 +69,19 @@ class RewardAdTracker(BaseModel):
         self,
         config: AdRewardConfig,
         current_time: float,
-    ) -> AdWatchRecord:
-        """Record an ad watch and return the watch record.
+    ) -> AdWatchRecord | None:
+        """Attempt to watch an ad and record it.
 
         Args:
             config: The ad reward configuration.
             current_time: Current timestamp in seconds.
 
         Returns:
-            The recorded ad watch record.
+            AdWatchRecord if successful, None if blocked by limits/cooldown.
         """
+        can, _ = self.can_watch(config, current_time)
+        if not can:
+            return None
         key = config.reward_type.value
         self.watches_today[key] = self.watches_today.get(key, 0) + 1
         self.last_watch_time[key] = current_time

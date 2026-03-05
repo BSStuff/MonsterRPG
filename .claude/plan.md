@@ -1,9 +1,9 @@
 # Feature: Monster Survival RPG — Phase 5 Monetization & Polish
 
 ## Status
-- **Phase**: implement (Phase 5 — Monetization & Polish)
-- **Status**: active
-- **Progress**: 0/4 tasks complete
+- **Phase**: done (Phase 5 — Monetization & Polish)
+- **Status**: complete
+- **Progress**: 4/4 tasks complete + review fixes applied
 - **Last Updated**: 2026-03-04
 
 ## Feature Scope
@@ -89,13 +89,13 @@ Implement monetization systems and save/load persistence on top of Phases 1-4:
 
 ### Phase 5 — Monetization & Polish (Implementation)
 - [x] `implementation-agent` | Implement Premium Currency (Gems) system — gem packages, gem-purchasable upgrades (queue slots, offline cap, inventory), price catalog | complete
-- [ ] `implementation-agent` | Implement Reward Ads hooks — revive, idle boost (+25%), taming bonus, resource boost, with cooldowns and limits | pending
-- [ ] `implementation-agent` | Implement Subscription tier logic — monthly sub with benefits (extra queue slot, increased offline cap, cosmetics) | pending
-- [ ] `implementation-agent` | Implement Save/Load system — cloud-ready serialization of all player data (monsters, inventory, progress, economy) | pending
+- [x] `implementation-agent` | Implement Reward Ads hooks — revive, idle boost (+25%), taming bonus, resource boost, with cooldowns and limits | complete
+- [x] `implementation-agent` | Implement Subscription tier logic — monthly sub with benefits (extra queue slot, increased offline cap, cosmetics) | complete
+- [x] `implementation-agent` | Implement Save/Load system — cloud-ready serialization of all player data (monsters, inventory, progress, economy) | complete
 
-### Phase 5 — Review
-- [ ] `review-agent` | Test verification and code quality | pending
-- [ ] `blocking-pr-critic` | Final approval of Phase 5 | pending
+### Phase 5 — Review (Complete)
+- [x] `review-agent` | Test verification and code quality | complete
+- [x] `blocking-pr-critic` | Final approval of Phase 5 — 4 review fixes + currency dedup applied | complete
 
 ## Blockers
 None

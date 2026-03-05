@@ -1,8 +1,14 @@
 """Premium currency (Gems) system — packages, upgrades, price catalog."""
 
+from __future__ import annotations
+
 from enum import StrEnum
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
+
+if TYPE_CHECKING:
+    from monster_rpg.economy.manager import EconomyManager
 
 
 class GemPackage(BaseModel):
@@ -112,29 +118,38 @@ class PremiumStore:
             return False, "Maximum purchases reached"
         return True, None
 
-    def purchase_upgrade(self, upgrade: PremiumUpgrade, current_gems: int) -> PurchaseResult:
-        """Execute a premium upgrade purchase.
+    def purchase_upgrade(
+        self, upgrade: PremiumUpgrade, economy: EconomyManager
+    ) -> PurchaseResult:
+        """Execute a premium upgrade purchase, deducting gems atomically.
 
         Args:
             upgrade: The upgrade to purchase.
-            current_gems: Player's current gem balance.
+            economy: The EconomyManager holding the player's gem balance.
 
         Returns:
             PurchaseResult with success/failure details.
         """
-        can_buy, error = self.can_purchase_upgrade(upgrade, current_gems)
+        can_buy, error = self.can_purchase_upgrade(upgrade, economy.gems)
         if not can_buy:
             return PurchaseResult(
                 success=False,
-                gems_remaining=current_gems,
+                gems_remaining=economy.gems,
                 error=error,
             )
-        new_gems = current_gems - upgrade.gem_cost
+        # Atomically deduct gems
+        success = economy.spend_gems(upgrade.gem_cost, f"Premium upgrade: {upgrade.name}")
+        if not success:
+            return PurchaseResult(
+                success=False,
+                gems_remaining=economy.gems,
+                error="Failed to deduct gems",
+            )
         self.purchase_counts[upgrade.upgrade_id] = self.get_purchase_count(upgrade.upgrade_id) + 1
         return PurchaseResult(
             success=True,
             gems_spent=upgrade.gem_cost,
-            gems_remaining=new_gems,
+            gems_remaining=economy.gems,
         )
 
 

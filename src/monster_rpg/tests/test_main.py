@@ -46,8 +46,6 @@ class TestPlayer:
         assert player.team_monster_ids == []
         assert player.owned_monster_ids == []
         assert player.active_area_id is None
-        assert player.gems == 0
-        assert player.gold == 0
         assert player.strategy_profiles == []
         assert player.action_queue_slots == BASE_ACTION_QUEUE_SLOTS
 
@@ -60,16 +58,6 @@ class TestPlayer:
         """Username cannot exceed 30 characters."""
         with pytest.raises(ValidationError):
             _make_player(username="A" * 31)
-
-    def test_negative_gems_rejected(self) -> None:
-        """Gems cannot be negative."""
-        with pytest.raises(ValidationError):
-            _make_player(gems=-1)
-
-    def test_negative_gold_rejected(self) -> None:
-        """Gold cannot be negative."""
-        with pytest.raises(ValidationError):
-            _make_player(gold=-5)
 
     def test_negative_experience_rejected(self) -> None:
         """Experience cannot be negative."""
@@ -99,11 +87,11 @@ class TestPlayer:
         assert player.strategy_profiles[1].proficiency_level == 5
 
     def test_action_queue_slots_bounds(self) -> None:
-        """Action queue slots must be between 1 and 5."""
+        """Action queue slots must be between 1 and 10."""
         with pytest.raises(ValidationError):
             _make_player(action_queue_slots=0)
         with pytest.raises(ValidationError):
-            _make_player(action_queue_slots=6)
+            _make_player(action_queue_slots=11)
 
     def test_level_must_be_positive(self) -> None:
         """Player level must be at least 1."""

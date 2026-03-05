@@ -221,6 +221,30 @@ class TestRewardAdTracker:
         assert tracker.watches_today["revive"] == 1
         assert tracker.watches_today["idle_boost"] == 1
 
+    def test_record_watch_blocked_by_daily_limit(
+        self, tracker: RewardAdTracker, revive_config: AdRewardConfig
+    ) -> None:
+        """record_watch should return None when daily limit is reached."""
+        # Revive daily limit is 3, space watches far apart to avoid cooldown
+        for i in range(3):
+            result = tracker.record_watch(revive_config, current_time=float(i * 3600))
+            assert result is not None
+        # 4th attempt should be blocked
+        result = tracker.record_watch(revive_config, current_time=20000.0)
+        assert result is None
+        assert tracker.watches_today["revive"] == 3
+
+    def test_record_watch_blocked_by_cooldown(
+        self, tracker: RewardAdTracker, revive_config: AdRewardConfig
+    ) -> None:
+        """record_watch should return None when cooldown hasn't elapsed."""
+        result = tracker.record_watch(revive_config, current_time=1000.0)
+        assert result is not None
+        # Try again within 30-minute cooldown
+        result = tracker.record_watch(revive_config, current_time=1500.0)
+        assert result is None
+        assert tracker.watches_today["revive"] == 1
+
 
 # ==========================================
 # AD_REWARD_CONFIGS tests

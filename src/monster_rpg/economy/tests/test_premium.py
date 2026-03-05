@@ -3,6 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
+from monster_rpg.economy.manager import EconomyManager
 from monster_rpg.economy.premium import (
     GEM_PACKAGES,
     PREMIUM_UPGRADES,
@@ -39,6 +40,11 @@ def _make_upgrade(**overrides: object) -> PremiumUpgrade:
     }
     defaults.update(overrides)
     return PremiumUpgrade(**defaults)
+
+
+def _make_economy(gems: int = 0) -> EconomyManager:
+    """Create an EconomyManager with the given gem balance."""
+    return EconomyManager(gems=gems)
 
 
 class TestGemPackage:
@@ -196,7 +202,8 @@ class TestPremiumStore:
         store = PremiumStore()
         upgrade = _make_upgrade(gem_cost=100, max_purchases=1)
         # Buy once
-        store.purchase_upgrade(upgrade, current_gems=500)
+        economy = _make_economy(gems=500)
+        store.purchase_upgrade(upgrade, economy)
         # Try again
         can_buy, error = store.can_purchase_upgrade(upgrade, current_gems=500)
         assert can_buy is False
@@ -206,30 +213,35 @@ class TestPremiumStore:
         """purchase_upgrade should deduct gems and track count."""
         store = PremiumStore()
         upgrade = _make_upgrade(gem_cost=200)
-        result = store.purchase_upgrade(upgrade, current_gems=500)
+        economy = _make_economy(gems=500)
+        result = store.purchase_upgrade(upgrade, economy)
         assert result.success is True
         assert result.gems_spent == 200
         assert result.gems_remaining == 300
         assert result.error is None
         assert store.get_purchase_count("test_upgrade") == 1
+        assert economy.gems == 300
 
     def test_purchase_upgrade_fail_insufficient_gems(self) -> None:
         """purchase_upgrade should fail gracefully with insufficient gems."""
         store = PremiumStore()
         upgrade = _make_upgrade(gem_cost=200)
-        result = store.purchase_upgrade(upgrade, current_gems=100)
+        economy = _make_economy(gems=100)
+        result = store.purchase_upgrade(upgrade, economy)
         assert result.success is False
         assert result.gems_spent == 0
         assert result.gems_remaining == 100
         assert result.error == "Insufficient gems"
         assert store.get_purchase_count("test_upgrade") == 0
+        assert economy.gems == 100
 
     def test_purchase_upgrade_fail_max_reached(self) -> None:
         """purchase_upgrade should fail when max purchases already reached."""
         store = PremiumStore()
         upgrade = _make_upgrade(gem_cost=100, max_purchases=1)
-        store.purchase_upgrade(upgrade, current_gems=1000)
-        result = store.purchase_upgrade(upgrade, current_gems=1000)
+        economy = _make_economy(gems=1000)
+        store.purchase_upgrade(upgrade, economy)
+        result = store.purchase_upgrade(upgrade, economy)
         assert result.success is False
         assert result.error == "Maximum purchases reached"
 
@@ -237,11 +249,12 @@ class TestPremiumStore:
         """Should allow purchases up to max_purchases and then reject."""
         store = PremiumStore()
         upgrade = _make_upgrade(gem_cost=50, max_purchases=3)
+        economy = _make_economy(gems=10000)
         for i in range(3):
-            result = store.purchase_upgrade(upgrade, current_gems=10000)
+            result = store.purchase_upgrade(upgrade, economy)
             assert result.success is True, f"Purchase {i + 1} should succeed"
         assert store.get_purchase_count("test_upgrade") == 3
-        result = store.purchase_upgrade(upgrade, current_gems=10000)
+        result = store.purchase_upgrade(upgrade, economy)
         assert result.success is False
         assert result.error == "Maximum purchases reached"
 
@@ -249,21 +262,34 @@ class TestPremiumStore:
         """Should succeed when gems exactly equal the cost."""
         store = PremiumStore()
         upgrade = _make_upgrade(gem_cost=100)
-        result = store.purchase_upgrade(upgrade, current_gems=100)
+        economy = _make_economy(gems=100)
+        result = store.purchase_upgrade(upgrade, economy)
         assert result.success is True
         assert result.gems_remaining == 0
+        assert economy.gems == 0
 
     def test_independent_upgrade_tracking(self) -> None:
         """Purchase counts should be tracked independently per upgrade_id."""
         store = PremiumStore()
         upgrade_a = _make_upgrade(upgrade_id="upgrade_a", max_purchases=2)
         upgrade_b = _make_upgrade(upgrade_id="upgrade_b", max_purchases=2)
-        store.purchase_upgrade(upgrade_a, current_gems=1000)
-        store.purchase_upgrade(upgrade_a, current_gems=1000)
+        economy = _make_economy(gems=10000)
+        store.purchase_upgrade(upgrade_a, economy)
+        store.purchase_upgrade(upgrade_a, economy)
         assert store.get_purchase_count("upgrade_a") == 2
         assert store.get_purchase_count("upgrade_b") == 0
-        result = store.purchase_upgrade(upgrade_b, current_gems=1000)
+        result = store.purchase_upgrade(upgrade_b, economy)
         assert result.success is True
+
+    def test_purchase_records_transaction(self) -> None:
+        """purchase_upgrade should create a transaction in EconomyManager."""
+        store = PremiumStore()
+        upgrade = _make_upgrade(gem_cost=200)
+        economy = _make_economy(gems=500)
+        store.purchase_upgrade(upgrade, economy)
+        assert len(economy.transaction_log) == 1
+        assert economy.transaction_log[0].currency_type == "gems"
+        assert economy.transaction_log[0].amount == -200
 
 
 class TestGemPackageCatalog:

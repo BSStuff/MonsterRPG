@@ -43,35 +43,38 @@ class PlayerSubscription(BaseModel):
     end_timestamp: float = Field(default=0, ge=0)
     auto_renew: bool = Field(default=False)
 
-    @property
-    def is_active(self) -> bool:
-        """Check if the subscription is currently active."""
-        return self.active_plan is not None and self.end_timestamp > 0
+    def is_active(self, current_time: float) -> bool:
+        """Check if subscription is currently active."""
+        return (
+            self.active_plan is not None
+            and self.end_timestamp > 0
+            and current_time < self.end_timestamp
+        )
 
-    def get_benefits(self) -> SubscriptionBenefits | None:
+    def get_benefits(self, current_time: float) -> SubscriptionBenefits | None:
         """Get the benefits of the active subscription, or None if inactive."""
-        if not self.is_active:
+        if not self.is_active(current_time):
             return None
         return self.active_plan.benefits if self.active_plan else None
 
-    def get_idle_cap_bonus(self) -> float:
+    def get_idle_cap_bonus(self, current_time: float) -> float:
         """Get extra offline cap hours from subscription."""
-        benefits = self.get_benefits()
+        benefits = self.get_benefits(current_time)
         return benefits.idle_cap_bonus_hours if benefits else 0.0
 
-    def get_queue_slot_bonus(self) -> int:
+    def get_queue_slot_bonus(self, current_time: float) -> int:
         """Get extra action queue slots from subscription."""
-        benefits = self.get_benefits()
+        benefits = self.get_benefits(current_time)
         return benefits.queue_slot_bonus if benefits else 0
 
-    def get_daily_gem_stipend(self) -> int:
+    def get_daily_gem_stipend(self, current_time: float) -> int:
         """Get daily gem stipend from subscription."""
-        benefits = self.get_benefits()
+        benefits = self.get_benefits(current_time)
         return benefits.daily_gem_stipend if benefits else 0
 
-    def has_ad_removal(self) -> bool:
+    def has_ad_removal(self, current_time: float) -> bool:
         """Check if subscription removes ads."""
-        benefits = self.get_benefits()
+        benefits = self.get_benefits(current_time)
         return benefits.ad_removal if benefits else False
 
 

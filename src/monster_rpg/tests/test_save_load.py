@@ -261,7 +261,7 @@ class TestSerializationRoundTrip:
         save = _make_save(subscription=sub)
         json_str = serialize_save(save)
         restored = deserialize_save(json_str)
-        assert restored.subscription.is_active is True
+        assert restored.subscription.is_active(current_time=1500.0) is True
         assert restored.subscription.auto_renew is True
         assert restored.subscription.active_plan is not None
         assert restored.subscription.active_plan.tier == SubscriptionTier.MONTHLY
@@ -519,7 +519,7 @@ class TestEdgeCases:
         ad_tracker = RewardAdTracker(watches_today={"revive": 1})
 
         save = GameSaveData(
-            player=_make_player(gold=1000, gems=50, level=15),
+            player=_make_player(level=15),
             monsters=[monster],
             teams=[team],
             inventory=inv,
