@@ -71,7 +71,7 @@ Implement the team composition and area/monster content systems on top of Phases
 ### Phase 4 — Team & Areas (Implementation)
 - [x] `implementation-agent` | Implement Team system — team composition up to 6 monsters, team management (add/remove/reorder), team validation, suggested composition roles (Tank/Off-Tank/DPS/Support/Flex), multiple teams unlockable via upgrades | complete
 - [x] `implementation-agent` | Create 2 MVP Areas with exclusive monsters/materials, difficulty scaling, area-specific drop tables, taming base rates, idle tracking integration | complete
-- [ ] `implementation-agent` | Design and implement 12 MVP Monsters with unique skills, traits, elements, stats, taming difficulties, and area assignments | pending
+- [x] `implementation-agent` | Design and implement 12 MVP Monsters with unique skills, traits, elements, stats, taming difficulties, and area assignments | complete
 
 ### Phase 4 — Review
 - [ ] `review-agent` | Test verification and code quality review | pending
