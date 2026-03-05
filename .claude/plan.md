@@ -55,7 +55,7 @@ All modules live under `src/elements_rpg/` and need API endpoints:
 
 - [x] `implementation-agent` | Rename project: update pyproject.toml name, description, package references, README, CLAUDE.md from "Monster Survival RPG" / "monster-rpg" to "ElementsRPG" / "elements-rpg" | complete
 - [x] `implementation-agent` | Add FastAPI + uvicorn + httpx + pytest-asyncio to dependencies via `uv add` | complete
-- [ ] `implementation-agent` | Create `src/elements_rpg/api/` package with `__init__.py`, `app.py` (FastAPI app factory), and `config.py` (Settings via pydantic-settings, env vars for Supabase URL/keys, Render port, CORS origins) | pending
+- [x] `implementation-agent` | Create `src/elements_rpg/api/` package with `__init__.py`, `app.py` (FastAPI app factory), and `config.py` (Settings via pydantic-settings, env vars for Supabase URL/keys, Render port, CORS origins) | complete
 - [ ] `implementation-agent` | Create base router structure: `src/elements_rpg/api/routers/` with stub routers for all 12 domains (auth, combat, monsters, economy, idle, taming, skills, crafting, save_load, premium, subscriptions, ads) | pending
 - [ ] `implementation-agent` | Set up CORS middleware -- allow Unity WebGL origins (localhost:* for dev, Vercel domain for prod), configurable via env vars | pending
 - [ ] `implementation-agent` | Create global error handling middleware -- structured JSON error responses, map domain exceptions to HTTP status codes | pending
@@ -445,6 +445,7 @@ scripts/
 | 2026-03-05 | 1 | Rename project to ElementsRPG | Package dir renamed src/monster_rpg -> src/elements_rpg, all imports updated, pyproject.toml + README updated, 884 tests pass |
 | 2026-03-05 | 1 | Add FastAPI dependencies | Added fastapi, uvicorn[standard], httpx to project deps; pytest-asyncio to dev deps; uv sync clean, 884 tests pass |
 | 2026-03-05 | 1 | Add health check endpoint | GET /health returns status, service name, version, UTC timestamp; ruff clean |
+| 2026-03-05 | 1 | Create FastAPI app factory and settings config | api/config.py (pydantic-settings), api/app.py (factory with CORS, error handlers, health, router registry), api/routers/__init__.py (dynamic router loading), pydantic-settings added |
 
 ---
 
