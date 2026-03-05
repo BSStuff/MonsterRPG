@@ -75,7 +75,7 @@ All modules live under `src/elements_rpg/` and need API endpoints:
 **Goal**: Connect to Supabase PostgreSQL, create SQLAlchemy models mirroring existing Pydantic models, set up Alembic migrations, and implement Supabase Auth JWT verification.
 
 - [x] `implementation-agent` | Add sqlalchemy[asyncio], asyncpg, alembic, python-jose[cryptography], pydantic-settings to dependencies via `uv add` | complete
-- [ ] `implementation-agent` | Create `src/elements_rpg/db/` package with `engine.py` (async engine factory), `session.py` (async session dependency), `base.py` (declarative base) | pending
+- [x] `implementation-agent` | Create `src/elements_rpg/db/` package with `engine.py` (async engine factory), `session.py` (async session dependency), `base.py` (declarative base) | complete
 - [ ] `implementation-agent` | Create SQLAlchemy models in `src/elements_rpg/db/models/` mirroring all Pydantic models -- players, monsters, teams, team_members, inventories, economy_state, skills, taming_trackers, idle_trackers, action_queues, life_skills, subscriptions, ad_trackers, premium_purchases | pending
 - [ ] `implementation-agent` | Set up Alembic: `alembic init`, configure `env.py` for async, create initial migration from SQLAlchemy models | pending
 - [ ] `implementation-agent` | Create `src/elements_rpg/api/auth.py` -- Supabase JWT verification middleware (decode JWT, extract user_id, verify against Supabase JWKS endpoint), create `get_current_user` dependency | pending

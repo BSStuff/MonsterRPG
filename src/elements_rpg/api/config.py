@@ -13,6 +13,7 @@ class Settings(BaseSettings):
         ELEMENTS_CORS_ORIGINS=["http://localhost:3000","https://my-app.vercel.app"]
         ELEMENTS_SUPABASE_URL=https://xxx.supabase.co
         ELEMENTS_SUPABASE_KEY=eyJ...
+        ELEMENTS_DATABASE_URL=postgresql+asyncpg://postgres:[password]@[host]:5432/postgres
         ELEMENTS_PORT=8000
     """
 
@@ -30,6 +31,9 @@ class Settings(BaseSettings):
 
     # CORS
     cors_origins: list[str] = ["http://localhost:*"]
+
+    # Database
+    database_url: str = ""
 
     # Supabase
     supabase_url: str = ""

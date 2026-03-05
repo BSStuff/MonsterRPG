@@ -1,17 +1,17 @@
-"""FastAPI dependency injection stubs for ElementsRPG.
+"""FastAPI dependency injection for ElementsRPG.
 
-These will be implemented in Phase 2 (Supabase integration).
-For now they provide the interface that routers will depend on.
+Database session dependency is implemented via db.session.get_db.
+Auth and game state dependencies are stubs for Phase 2 (Supabase Auth).
 """
 
 from __future__ import annotations
 
 from typing import Any
 
+from elements_rpg.db.session import get_db
 
-async def get_db_session() -> Any:
-    """Get database session. Stub for Phase 2 (Supabase)."""
-    raise NotImplementedError("Database not configured yet. See Phase 2.")
+# Re-export get_db as get_db_session for backward compatibility with routers
+get_db_session = get_db
 
 
 async def get_current_user() -> Any:
