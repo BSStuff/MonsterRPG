@@ -59,7 +59,7 @@ All modules live under `src/elements_rpg/` and need API endpoints:
 - [ ] `implementation-agent` | Create base router structure: `src/elements_rpg/api/routers/` with stub routers for all 12 domains (auth, combat, monsters, economy, idle, taming, skills, crafting, save_load, premium, subscriptions, ads) | pending
 - [ ] `implementation-agent` | Set up CORS middleware -- allow Unity WebGL origins (localhost:* for dev, Vercel domain for prod), configurable via env vars | pending
 - [ ] `implementation-agent` | Create global error handling middleware -- structured JSON error responses, map domain exceptions to HTTP status codes | pending
-- [ ] `implementation-agent` | Create health check endpoint (`GET /health`) returning service status, version, timestamp | pending
+- [x] `implementation-agent` | Create health check endpoint (`GET /health`) returning service status, version, timestamp | complete
 - [ ] `implementation-agent` | Create Pydantic request/response schemas in `src/elements_rpg/api/schemas/` -- reuse existing models as bases, add API-specific wrappers (pagination, error responses, success envelopes) | pending
 - [ ] `implementation-agent` | Create `src/elements_rpg/api/dependencies.py` -- dependency injection stubs for DB session, current user, service layer access | pending
 - [ ] `review-agent` | Review Phase 1: verify app starts, health check works, all routers registered, CORS configured, error handling returns proper JSON | pending
@@ -444,6 +444,7 @@ scripts/
 | 2026-03-05 | -- | Plan created | All 7 phases defined, 73 endpoints mapped across 12 domains |
 | 2026-03-05 | 1 | Rename project to ElementsRPG | Package dir renamed src/monster_rpg -> src/elements_rpg, all imports updated, pyproject.toml + README updated, 884 tests pass |
 | 2026-03-05 | 1 | Add FastAPI dependencies | Added fastapi, uvicorn[standard], httpx to project deps; pytest-asyncio to dev deps; uv sync clean, 884 tests pass |
+| 2026-03-05 | 1 | Add health check endpoint | GET /health returns status, service name, version, UTC timestamp; ruff clean |
 
 ---
 
