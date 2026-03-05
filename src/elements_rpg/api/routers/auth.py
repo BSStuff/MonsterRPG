@@ -19,8 +19,8 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 from elements_rpg.api.config import Settings, get_settings
 from elements_rpg.api.schemas import SuccessResponse
-from elements_rpg.db.models.player import PlayerDB
 from elements_rpg.db.session import get_db
+from elements_rpg.services.player_service import create_player
 
 logger = logging.getLogger(__name__)
 
@@ -143,13 +143,8 @@ async def register(
             detail="Supabase signup did not return a user ID",
         )
 
-    # Create local player profile
-    player = PlayerDB(
-        supabase_user_id=supabase_uid,
-        username=body.username,
-    )
-    db.add(player)
-    await db.flush()
+    # Create local player profile + initial game save
+    await create_player(db, supabase_user_id=supabase_uid, username=body.username)
 
     auth_resp = AuthResponse(
         access_token=data.get("access_token", ""),

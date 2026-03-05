@@ -118,9 +118,7 @@ class PremiumStore:
             return False, "Maximum purchases reached"
         return True, None
 
-    def purchase_upgrade(
-        self, upgrade: PremiumUpgrade, economy: EconomyManager
-    ) -> PurchaseResult:
+    def purchase_upgrade(self, upgrade: PremiumUpgrade, economy: EconomyManager) -> PurchaseResult:
         """Execute a premium upgrade purchase, deducting gems atomically.
 
         Args:

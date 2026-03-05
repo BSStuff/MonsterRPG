@@ -80,8 +80,8 @@ All modules live under `src/elements_rpg/` and need API endpoints:
 - [x] `implementation-agent` | Set up Alembic: `alembic init`, configure `env.py` for async, create initial migration from SQLAlchemy models | complete
 - [x] `implementation-agent` | Create `src/elements_rpg/api/auth.py` -- Supabase JWT verification middleware (decode JWT, extract user_id, verify against Supabase JWKS endpoint), create `get_current_user` dependency | complete
 - [x] `implementation-agent` | Create auth router endpoints: `POST /auth/register` (calls Supabase Auth, creates player profile), `POST /auth/login` (proxy to Supabase Auth), `POST /auth/refresh` (token refresh), `GET /auth/me` (current user profile) | complete
-- [ ] `implementation-agent` | Create player CRUD service: `src/elements_rpg/services/player_service.py` -- create, read, update player profile in PostgreSQL, bridge between Pydantic and SQLAlchemy models | pending
-- [ ] `implementation-agent` | Create Pydantic <-> SQLAlchemy conversion utilities in `src/elements_rpg/db/converters.py` -- bidirectional mapping for all model pairs | pending
+- [x] `implementation-agent` | Create player CRUD service: `src/elements_rpg/services/player_service.py` -- create, read, update player profile in PostgreSQL, bridge between Pydantic and SQLAlchemy models | complete
+- [x] `implementation-agent` | Create Pydantic <-> SQLAlchemy conversion utilities in `src/elements_rpg/db/converters.py` -- bidirectional mapping for all model pairs | complete
 - [ ] `test-agent` | Write integration tests for auth flow (register, login, JWT verification, protected endpoint access) using httpx async client | pending
 - [ ] `review-agent` | Review Phase 2: verify migrations run cleanly, auth flow works end-to-end, player CRUD persists to PostgreSQL, JWT middleware rejects invalid tokens | pending
 
@@ -449,6 +449,7 @@ scripts/
 | 2026-03-05 | 1 | Add API schemas and dependency stubs | api/schemas.py (SuccessResponse, ErrorResponse, PaginatedResponse, PaginationParams), api/dependencies.py (get_db_session, get_current_user, get_game_state stubs) |
 | 2026-03-05 | 1 | Phase 1 Review complete | All 10 tasks verified: app starts (69 routes), health returns 200, /docs serves Swagger UI, CORS configured (localhost:*), error handlers return structured JSON, 884 tests pass, ruff clean, no unused imports |
 | 2026-03-05 | 2 | JWT auth middleware + auth endpoints | api/auth.py (Supabase JWT decode, get_current_user dep), routers/auth.py (register/login/refresh/me with Supabase proxy), dependencies.py updated, B008 suppressed for FastAPI Depends pattern, 884 tests pass |
+| 2026-03-05 | 2 | Player service + DB converters | services/player_service.py (create/read/update CRUD), db/converters.py (bidirectional Pydantic<->SQLAlchemy for player, game_state, monster, economy), auth router refactored to use create_player service, 884 tests pass |
 
 ---
 
