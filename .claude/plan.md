@@ -91,7 +91,7 @@ All modules live under `src/elements_rpg/` and need API endpoints:
 
 ---
 
-### Phase 3: API Endpoints -- Core Gameplay
+### Phase 3: API Endpoints -- Core Gameplay (COMPLETE)
 
 **Goal**: Implement the highest-priority endpoints for save/load, monsters, teams, combat, and taming. All endpoints require authentication.
 
@@ -134,8 +134,8 @@ All modules live under `src/elements_rpg/` and need API endpoints:
 - [x] `implementation-agent` | `POST /taming/attempt` -- attempt to tame a monster, return success/fail + pity state | complete
 - [x] `implementation-agent` | `GET /taming/tracker` -- get current pity counters for all species | complete
 
-- [ ] `test-agent` | Write API tests for all Phase 3 endpoints (save/load, monsters, teams, combat, taming) -- happy path + error cases | pending
-- [ ] `review-agent` | Review Phase 3: verify all endpoints function correctly, auth required, proper error responses, save/load roundtrip integrity | pending
+- [x] `test-agent` | Write API tests for all Phase 3 endpoints (save/load, monsters, teams, combat, taming) -- happy path + error cases | complete
+- [x] `review-agent` | Review Phase 3: verify all endpoints function correctly, auth required, proper error responses, save/load roundtrip integrity | complete
 
 **Dependencies**: Phase 2 complete (database + auth available).
 
@@ -456,6 +456,7 @@ scripts/
 | 2026-03-05 | 3 | Team service + endpoints | team_service.py (CRUD, reorder, assign_roles with ownership validation), teams router (6 endpoints: list, create, update, delete, reorder, roles), 902 tests pass, ruff clean |
 | 2026-03-05 | 3 | Taming service + endpoints | taming_service.py (calculate_chance, attempt_tame_monster, get_tracker with game state persistence), taming router (3 endpoints: POST /calculate, POST /attempt, GET /tracker) with auth, 902 tests pass, ruff clean |
 | 2026-03-05 | 3 | Combat service + endpoints | combat_service.py (in-memory session management, start/round/finish/state/log), combat router (5 endpoints: POST start, POST round, POST finish, GET state, GET log) with auth + ownership validation, 943 tests pass, ruff clean |
+| 2026-03-05 | 3 | Phase 3 API tests + review complete | test_saves.py (11 tests), test_monsters.py (17 tests), test_teams.py (14 tests), test_taming.py (14 tests) — 56 new tests, 999 total passing, all endpoints verified: auth required, proper error responses (401/403/404/409/422), SuccessResponse envelopes, ruff clean |
 
 ---
 
