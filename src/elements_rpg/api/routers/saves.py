@@ -9,13 +9,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from elements_rpg.api.auth import get_current_user
+from elements_rpg.api.dependencies import resolve_player_id
 from elements_rpg.api.schemas import SuccessResponse
 from elements_rpg.db.session import get_db
 from elements_rpg.save_load import GameSaveData  # noqa: TC001 — used at runtime as request body
-from elements_rpg.services.player_service import get_player_by_supabase_id
 from elements_rpg.services.save_service import (
     create_fresh_save,
     get_save_version,
@@ -32,6 +32,17 @@ router = APIRouter(prefix="/saves", tags=["Save/Load"])
 # ---------------------------------------------------------------------------
 # Response schemas
 # ---------------------------------------------------------------------------
+
+
+class SaveRequest(BaseModel):
+    """Request body for saving game state with optional optimistic locking."""
+
+    save_data: GameSaveData
+    expected_version: int | None = Field(
+        default=None,
+        description="Expected current save version for optimistic locking. "
+        "If provided and does not match, save will be rejected with 409.",
+    )
 
 
 class SaveConfirmation(BaseModel):
@@ -51,46 +62,32 @@ class SaveVersionInfo(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-async def _resolve_player_id(
-    db: AsyncSession,
-    current_user: dict[str, Any],
-) -> Any:
-    """Resolve the internal player UUID from the JWT sub claim.
-
-    Raises HTTPException 404 if no matching player is found.
-    """
-    supabase_uid: str = current_user["sub"]
-    player = await get_player_by_supabase_id(db, supabase_uid)
-    if player is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No player profile found for this account. Register first.",
-        )
-    return player.id
-
-
-# ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
 
 
 @router.post("/", response_model=SaveConfirmation, status_code=200)
 async def create_save(
-    save_data: GameSaveData,
+    body: SaveRequest,
     current_user: dict[str, Any] = Depends(get_current_user),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> SaveConfirmation:
     """Save current game state for the authenticated player.
 
-    Accepts a full GameSaveData JSON body, validates it, and persists
-    to the game_states table (upsert — creates or updates).
+    Accepts a full GameSaveData JSON body with optional expected_version
+    for optimistic locking. If expected_version is provided and does not
+    match the current version, returns 409 Conflict.
     """
-    player_id = await _resolve_player_id(db, current_user)
-    db_state = await save_game_state(db, player_id, save_data)
+    player_id = await resolve_player_id(db, current_user)
+    try:
+        db_state = await save_game_state(
+            db, player_id, body.save_data, expected_version=body.expected_version
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
     updated_at = db_state.updated_at
     timestamp = updated_at.isoformat() if updated_at else ""
     return SaveConfirmation(
@@ -109,7 +106,7 @@ async def load_save(
 
     Returns the full GameSaveData as JSON inside a SuccessResponse wrapper.
     """
-    player_id = await _resolve_player_id(db, current_user)
+    player_id = await resolve_player_id(db, current_user)
     game_data = await load_game_state(db, player_id)
     if game_data is None:
         raise HTTPException(
@@ -128,7 +125,7 @@ async def create_new_save_endpoint(
 
     Returns 409 Conflict if the player already has a save.
     """
-    player_id = await _resolve_player_id(db, current_user)
+    player_id = await resolve_player_id(db, current_user)
 
     # Derive username from JWT email or fallback
     username = current_user.get("email", "Player")
@@ -150,6 +147,6 @@ async def get_save_version_endpoint(
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> SaveVersionInfo:
     """Get save metadata (version and timestamp) without loading full data."""
-    player_id = await _resolve_player_id(db, current_user)
+    player_id = await resolve_player_id(db, current_user)
     info = await get_save_version(db, player_id)
     return SaveVersionInfo(**info)

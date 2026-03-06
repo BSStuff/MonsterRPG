@@ -131,7 +131,7 @@ class TestListTeams:
         """Should return list of teams."""
         with (
             patch(
-                "elements_rpg.api.routers.teams.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -154,7 +154,7 @@ class TestListTeams:
         """Should return empty list when no teams."""
         with (
             patch(
-                "elements_rpg.api.routers.teams.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -194,7 +194,7 @@ class TestCreateTeam:
         """Should create team and return 201."""
         with (
             patch(
-                "elements_rpg.api.routers.teams.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -222,7 +222,7 @@ class TestCreateTeam:
         """Should return 422 when more than 6 monsters (Pydantic max_length)."""
         seven_ids = [str(uuid.uuid4()) for _ in range(7)]
         with patch(
-            "elements_rpg.api.routers.teams.player_service.get_player_by_supabase_id",
+            "elements_rpg.api.dependencies.get_player_by_supabase_id",
             new_callable=AsyncMock,
             return_value=_mock_player(),
         ):
@@ -238,7 +238,7 @@ class TestCreateTeam:
         """Should return 400 when service rejects (e.g., unowned monsters)."""
         with (
             patch(
-                "elements_rpg.api.routers.teams.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -271,7 +271,7 @@ class TestUpdateTeam:
 
         with (
             patch(
-                "elements_rpg.api.routers.teams.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -295,7 +295,7 @@ class TestUpdateTeam:
         """Should return 400 when team not found or not owned."""
         with (
             patch(
-                "elements_rpg.api.routers.teams.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -316,7 +316,7 @@ class TestUpdateTeam:
     async def test_update_team_invalid_uuid_returns_400(self, client: AsyncClient) -> None:
         """Should return 400 for invalid team UUID."""
         with patch(
-            "elements_rpg.api.routers.teams.player_service.get_player_by_supabase_id",
+            "elements_rpg.api.dependencies.get_player_by_supabase_id",
             new_callable=AsyncMock,
             return_value=_mock_player(),
         ):
@@ -341,7 +341,7 @@ class TestDeleteTeam:
         """Should delete team and return confirmation."""
         with (
             patch(
-                "elements_rpg.api.routers.teams.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -363,7 +363,7 @@ class TestDeleteTeam:
         """Should return 404 when team not found."""
         with (
             patch(
-                "elements_rpg.api.routers.teams.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -393,7 +393,7 @@ class TestReorderTeam:
 
         with (
             patch(
-                "elements_rpg.api.routers.teams.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -418,7 +418,7 @@ class TestReorderTeam:
         """Should return 400 when IDs don't match current members."""
         with (
             patch(
-                "elements_rpg.api.routers.teams.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -452,7 +452,7 @@ class TestAssignRoles:
 
         with (
             patch(
-                "elements_rpg.api.routers.teams.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -478,7 +478,7 @@ class TestAssignRoles:
         """Should return 400 when monster is not on the team."""
         with (
             patch(
-                "elements_rpg.api.routers.teams.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),

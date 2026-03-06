@@ -26,24 +26,36 @@ async def save_game_state(
     db: AsyncSession,
     player_id: uuid.UUID,
     save_data: GameSaveData,
+    expected_version: int | None = None,
 ) -> GameStateDB:
-    """Save full game state — upsert into game_states table.
+    """Save full game state with optimistic locking.
 
     If an existing save exists for the player, updates the save_data JSON
-    and increments the version.  Otherwise creates a new row.
+    and increments the version. If expected_version is provided and does
+    not match the current version, raises ValueError (save conflict).
 
     Args:
         db: The async database session.
         player_id: The player's database UUID.
         save_data: The complete game save data to persist.
+        expected_version: If provided, the save will only succeed if the
+            current version matches. Prevents concurrent overwrites.
 
     Returns:
         The persisted GameStateDB row (new or updated).
+
+    Raises:
+        ValueError: If expected_version does not match the current version.
     """
     result = await db.execute(select(GameStateDB).where(GameStateDB.player_id == player_id))
     existing = result.scalar_one_or_none()
 
     if existing is not None:
+        if expected_version is not None and existing.version != expected_version:
+            raise ValueError(
+                f"Save conflict: expected version {expected_version}, "
+                f"found {existing.version}. Reload and retry."
+            )
         existing.save_data = save_to_dict(save_data)
         existing.version = existing.version + 1
         await db.flush()

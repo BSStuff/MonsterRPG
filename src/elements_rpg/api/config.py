@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     debug: bool = False
 
     # CORS
-    cors_origins: list[str] = ["http://localhost:*"]
+    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8080"]
 
     # Database
     database_url: str = ""
@@ -43,6 +43,21 @@ class Settings(BaseSettings):
 
     # Server
     port: int = 8000
+
+    def validate_required_for_production(self) -> list[str]:
+        """Return list of missing required settings.
+
+        Returns:
+            List of environment variable names that are empty but required.
+        """
+        missing: list[str] = []
+        if not self.supabase_jwt_secret:
+            missing.append("ELEMENTS_SUPABASE_JWT_SECRET")
+        if not self.database_url:
+            missing.append("ELEMENTS_DATABASE_URL")
+        if not self.supabase_url:
+            missing.append("ELEMENTS_SUPABASE_URL")
+        return missing
 
 
 @lru_cache

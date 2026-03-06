@@ -1,4 +1,4 @@
-"""End-to-end API test — simulates a full player journey through all domains.
+"""End-to-end API test -- simulates a full player journey through all domains.
 
 Mocks Supabase Auth and DB dependencies. Tests that routes are wired correctly,
 schemas validate, and the API is coherent across all 15+ endpoints.
@@ -28,6 +28,11 @@ VALID_JWT_PAYLOAD: dict[str, Any] = {
     "aud": "authenticated",
     "exp": 9999999999,
 }
+
+# Shared patch targets
+RESOLVE_PLAYER_PATCH = "elements_rpg.api.dependencies.get_player_by_supabase_id"
+OWNED_MONSTERS_PATCH = "elements_rpg.api.routers.combat.monster_service.get_owned_monsters"
+EARN_GOLD_PATCH = "elements_rpg.api.routers.combat.earn_gold"
 
 
 # ---------------------------------------------------------------------------
@@ -178,7 +183,7 @@ class TestFullPlayerJourney:
 
         with (
             patch(
-                "elements_rpg.api.routers.saves.get_player_by_supabase_id",
+                RESOLVE_PLAYER_PATCH,
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -229,7 +234,7 @@ class TestFullPlayerJourney:
 
         with (
             patch(
-                "elements_rpg.api.routers.teams.player_service.get_player_by_supabase_id",
+                RESOLVE_PLAYER_PATCH,
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -256,10 +261,14 @@ class TestFullPlayerJourney:
     @pytest.mark.asyncio
     async def test_05_start_combat(self, client: AsyncClient) -> None:
         """POST /combat/start should create a combat session."""
-        response = await client.post(
-            "/combat/start",
-            json={"enemy_species_ids": ["species_leaflet"], "enemy_level": 1},
-        )
+        with (
+            patch(RESOLVE_PLAYER_PATCH, new_callable=AsyncMock, return_value=_mock_player()),
+            patch(OWNED_MONSTERS_PATCH, new_callable=AsyncMock, return_value=[]),
+        ):
+            response = await client.post(
+                "/combat/start",
+                json={"enemy_species_ids": ["species_leaflet"], "enemy_level": 1},
+            )
 
         assert response.status_code == 201
         body = response.json()
@@ -275,10 +284,14 @@ class TestFullPlayerJourney:
     @pytest.mark.asyncio
     async def test_06_execute_combat_rounds(self, client: AsyncClient) -> None:
         """Combat rounds should execute until one side wins."""
-        start_resp = await client.post(
-            "/combat/start",
-            json={"enemy_species_ids": ["species_leaflet"], "enemy_level": 1},
-        )
+        with (
+            patch(RESOLVE_PLAYER_PATCH, new_callable=AsyncMock, return_value=_mock_player()),
+            patch(OWNED_MONSTERS_PATCH, new_callable=AsyncMock, return_value=[]),
+        ):
+            start_resp = await client.post(
+                "/combat/start",
+                json={"enemy_species_ids": ["species_leaflet"], "enemy_level": 1},
+            )
         session_id = start_resp.json()["data"]["session_id"]
 
         finished = False
@@ -293,7 +306,11 @@ class TestFullPlayerJourney:
         assert finished, "Combat did not finish within 100 rounds"
 
         # Finish and get rewards
-        finish_resp = await client.post(f"/combat/{session_id}/finish")
+        with (
+            patch(RESOLVE_PLAYER_PATCH, new_callable=AsyncMock, return_value=_mock_player()),
+            patch(EARN_GOLD_PATCH, new_callable=AsyncMock),
+        ):
+            finish_resp = await client.post(f"/combat/{session_id}/finish")
         assert finish_resp.status_code == 200
         finish_body = finish_resp.json()
         assert finish_body["data"]["finished"] is True
@@ -317,7 +334,7 @@ class TestFullPlayerJourney:
 
         with (
             patch(
-                "elements_rpg.api.routers.taming.player_service.get_player_by_supabase_id",
+                RESOLVE_PLAYER_PATCH,
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -358,7 +375,7 @@ class TestFullPlayerJourney:
 
         with (
             patch(
-                "elements_rpg.api.routers.taming.player_service.get_player_by_supabase_id",
+                RESOLVE_PLAYER_PATCH,
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -393,7 +410,7 @@ class TestFullPlayerJourney:
 
         with (
             patch(
-                "elements_rpg.api.routers.economy.get_player_by_supabase_id",
+                RESOLVE_PLAYER_PATCH,
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -412,35 +429,17 @@ class TestFullPlayerJourney:
         assert body["data"]["gems"] == 10
 
     # ------------------------------------------------------------------
-    # 10. Earn gold (POST /economy/gold/earn)
+    # 10. Verify earn gold endpoint removed (server-authoritative economy)
     # ------------------------------------------------------------------
 
     @pytest.mark.asyncio
-    async def test_10_earn_gold(self, client: AsyncClient) -> None:
-        """POST /economy/gold/earn should increase gold balance."""
-        fake_balance = {"gold": 600, "gems": 10}
-
-        with (
-            patch(
-                "elements_rpg.api.routers.economy.get_player_by_supabase_id",
-                new_callable=AsyncMock,
-                return_value=_mock_player(),
-            ),
-            patch(
-                "elements_rpg.api.routers.economy.service_earn_gold",
-                new_callable=AsyncMock,
-                return_value=fake_balance,
-            ),
-        ):
-            response = await client.post(
-                "/economy/gold/earn",
-                json={"amount": 100, "reason": "combat_reward"},
-            )
-
-        assert response.status_code == 200
-        body = response.json()
-        assert body["success"] is True
-        assert body["data"]["gold"] == 600
+    async def test_10_earn_gold_endpoint_removed(self, client: AsyncClient) -> None:
+        """POST /economy/gold/earn should no longer exist (server-authoritative)."""
+        response = await client.post(
+            "/economy/gold/earn",
+            json={"amount": 100, "reason": "combat_reward"},
+        )
+        assert response.status_code in (404, 405)
 
     # ------------------------------------------------------------------
     # 11. View crafting recipes (GET /crafting/recipes)
@@ -482,7 +481,7 @@ class TestFullPlayerJourney:
 
         with (
             patch(
-                "elements_rpg.api.routers.idle.get_player_by_supabase_id",
+                RESOLVE_PLAYER_PATCH,
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -544,15 +543,18 @@ class TestFullPlayerJourney:
         fake_db_state.updated_at = datetime(2026, 3, 5, 14, 0, 0, tzinfo=UTC)
 
         save_body = {
-            "player": {
-                "player_id": PLAYER_UUID,
-                "username": "HeroPlayer",
+            "save_data": {
+                "player": {
+                    "player_id": PLAYER_UUID,
+                    "username": "HeroPlayer",
+                },
             },
+            "expected_version": None,
         }
 
         with (
             patch(
-                "elements_rpg.api.routers.saves.get_player_by_supabase_id",
+                RESOLVE_PLAYER_PATCH,
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),

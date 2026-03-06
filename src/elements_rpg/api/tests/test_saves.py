@@ -28,12 +28,15 @@ VALID_JWT_PAYLOAD: dict[str, Any] = {
 
 FAKE_PLAYER_ID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 
-# Minimal valid GameSaveData JSON body
+# Minimal valid SaveRequest JSON body (wraps GameSaveData in save_data field)
 VALID_SAVE_BODY: dict[str, Any] = {
-    "player": {
-        "player_id": FAKE_PLAYER_ID,
-        "username": "Hero",
+    "save_data": {
+        "player": {
+            "player_id": FAKE_PLAYER_ID,
+            "username": "Hero",
+        },
     },
+    "expected_version": None,
 }
 
 
@@ -120,7 +123,7 @@ class TestCreateSave:
 
         with (
             patch(
-                "elements_rpg.api.routers.saves.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -153,7 +156,7 @@ class TestCreateSave:
     async def test_save_player_not_found(self, client: AsyncClient) -> None:
         """Should return 404 if player profile not found."""
         with patch(
-            "elements_rpg.api.routers.saves.get_player_by_supabase_id",
+            "elements_rpg.api.dependencies.get_player_by_supabase_id",
             new_callable=AsyncMock,
             return_value=None,
         ):
@@ -181,7 +184,7 @@ class TestLoadSave:
 
         with (
             patch(
-                "elements_rpg.api.routers.saves.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -203,7 +206,7 @@ class TestLoadSave:
         """Should return 404 when no save exists."""
         with (
             patch(
-                "elements_rpg.api.routers.saves.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -249,7 +252,7 @@ class TestCreateNewSave:
 
         with (
             patch(
-                "elements_rpg.api.routers.saves.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -271,7 +274,7 @@ class TestCreateNewSave:
         """Should return 409 if save already exists."""
         with (
             patch(
-                "elements_rpg.api.routers.saves.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -301,7 +304,7 @@ class TestGetSaveVersion:
         """Should return version info when save exists."""
         with (
             patch(
-                "elements_rpg.api.routers.saves.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -328,7 +331,7 @@ class TestGetSaveVersion:
         """Should return version 0 and exists=False when no save."""
         with (
             patch(
-                "elements_rpg.api.routers.saves.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),

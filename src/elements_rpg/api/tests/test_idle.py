@@ -113,7 +113,7 @@ class TestRecordClear:
         }
         with (
             patch(
-                "elements_rpg.api.routers.idle.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -155,7 +155,7 @@ class TestRecordClear:
     async def test_record_clear_invalid_body(self, client: AsyncClient) -> None:
         """Should return 422 with invalid body."""
         with patch(
-            "elements_rpg.api.routers.idle.get_player_by_supabase_id",
+            "elements_rpg.api.dependencies.get_player_by_supabase_id",
             new_callable=AsyncMock,
             return_value=_mock_player(),
         ):
@@ -180,7 +180,7 @@ class TestGetTracker:
         mock_result = {"areas": {"forest": {"brpm": 2.0, "idle_rate": 1.7}}}
         with (
             patch(
-                "elements_rpg.api.routers.idle.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -224,7 +224,7 @@ class TestOfflineGains:
         )
         with (
             patch(
-                "elements_rpg.api.routers.idle.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -248,7 +248,7 @@ class TestOfflineGains:
     async def test_offline_gains_player_not_found(self, client: AsyncClient) -> None:
         """Should return 404 if player not found."""
         with patch(
-            "elements_rpg.api.routers.idle.get_player_by_supabase_id",
+            "elements_rpg.api.dependencies.get_player_by_supabase_id",
             new_callable=AsyncMock,
             return_value=None,
         ):
@@ -277,7 +277,7 @@ class TestGetActionQueue:
         }
         with (
             patch(
-                "elements_rpg.api.routers.idle.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -314,7 +314,7 @@ class TestAddAction:
         }
         with (
             patch(
-                "elements_rpg.api.routers.idle.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -344,7 +344,7 @@ class TestAddAction:
         """Should return 400 when queue is full."""
         with (
             patch(
-                "elements_rpg.api.routers.idle.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -379,7 +379,7 @@ class TestCancelAction:
         """Should cancel the action."""
         with (
             patch(
-                "elements_rpg.api.routers.idle.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -400,7 +400,7 @@ class TestCancelAction:
         """Should return 404 when action not found."""
         with (
             patch(
-                "elements_rpg.api.routers.idle.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -433,7 +433,7 @@ class TestAdvanceQueue:
         }
         with (
             patch(
-                "elements_rpg.api.routers.idle.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -464,7 +464,7 @@ class TestExpandQueue:
         mock_result = {"previous_slots": 2, "new_slots": 3}
         with (
             patch(
-                "elements_rpg.api.routers.idle.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -485,7 +485,7 @@ class TestExpandQueue:
         """Should return 400 when at max capacity."""
         with (
             patch(
-                "elements_rpg.api.routers.idle.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),

@@ -9,9 +9,9 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession  # noqa: TC002
 
 from elements_rpg.api.auth import get_current_user
+from elements_rpg.api.dependencies import resolve_player_id
 from elements_rpg.api.schemas import SuccessResponse
 from elements_rpg.db.session import get_db
-from elements_rpg.services.player_service import get_player_by_supabase_id
 from elements_rpg.services.premium_service import (
     activate_subscription as service_activate_subscription,
 )
@@ -61,26 +61,6 @@ class ActivateSubscriptionRequest(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-async def _resolve_player_id(
-    db: AsyncSession,
-    current_user: dict[str, Any],
-) -> Any:
-    """Resolve the internal player UUID from the JWT sub claim."""
-    supabase_uid: str = current_user["sub"]
-    player = await get_player_by_supabase_id(db, supabase_uid)
-    if player is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No player profile found for this account. Register first.",
-        )
-    return player.id
-
-
-# ---------------------------------------------------------------------------
 # Gem Packages & Upgrades (public + authenticated)
 # ---------------------------------------------------------------------------
 
@@ -106,7 +86,7 @@ async def purchase_upgrade(
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> SuccessResponse[dict[str, Any]]:
     """Purchase a convenience upgrade with gems."""
-    player_id = await _resolve_player_id(db, current_user)
+    player_id = await resolve_player_id(db, current_user)
     try:
         result = await service_purchase_upgrade(db, player_id, upgrade_id)
     except ValueError as e:
@@ -130,7 +110,7 @@ async def get_purchases(
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> SuccessResponse[dict[str, int]]:
     """Get the player's premium upgrade purchase history."""
-    player_id = await _resolve_player_id(db, current_user)
+    player_id = await resolve_player_id(db, current_user)
     try:
         purchases = await service_get_purchases(db, player_id)
     except ValueError as e:
@@ -160,7 +140,7 @@ async def activate_subscription(
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> SuccessResponse[dict[str, Any]]:
     """Activate a subscription tier for the player."""
-    player_id = await _resolve_player_id(db, current_user)
+    player_id = await resolve_player_id(db, current_user)
     try:
         result = await service_activate_subscription(db, player_id, body.plan_id)
     except ValueError as e:
@@ -177,7 +157,7 @@ async def get_active_subscription(
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> SuccessResponse[dict[str, Any] | None]:
     """Get the player's current active subscription and benefits."""
-    player_id = await _resolve_player_id(db, current_user)
+    player_id = await resolve_player_id(db, current_user)
     try:
         result = await service_get_active_subscription(db, player_id)
     except ValueError as e:
@@ -194,7 +174,7 @@ async def cancel_subscription(
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> SuccessResponse[dict[str, Any]]:
     """Cancel the player's active subscription."""
-    player_id = await _resolve_player_id(db, current_user)
+    player_id = await resolve_player_id(db, current_user)
     try:
         result = await service_cancel_subscription(db, player_id)
     except ValueError as e:
@@ -216,7 +196,7 @@ async def get_available_ads(
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> SuccessResponse[list[dict[str, Any]]]:
     """List which ad reward types are available (respects cooldowns and daily limits)."""
-    player_id = await _resolve_player_id(db, current_user)
+    player_id = await resolve_player_id(db, current_user)
     try:
         result = await service_get_available_ads(db, player_id)
     except ValueError as e:
@@ -234,7 +214,7 @@ async def watch_ad(
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> SuccessResponse[dict[str, Any]]:
     """Record an ad watch and grant the corresponding reward."""
-    player_id = await _resolve_player_id(db, current_user)
+    player_id = await resolve_player_id(db, current_user)
     try:
         result = await service_record_ad_watch(db, player_id, reward_type)
     except ValueError as e:
@@ -251,7 +231,7 @@ async def get_ad_tracker(
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> SuccessResponse[dict[str, Any]]:
     """Get ad watch history, cooldowns, and remaining daily watches."""
-    player_id = await _resolve_player_id(db, current_user)
+    player_id = await resolve_player_id(db, current_user)
     try:
         result = await service_get_ad_tracker(db, player_id)
     except ValueError as e:

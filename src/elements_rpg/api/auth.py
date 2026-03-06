@@ -29,6 +29,12 @@ def _decode_supabase_jwt(token: str, settings: Settings) -> dict[str, Any]:
     Raises:
         HTTPException: If token is invalid, expired, or has wrong audience.
     """
+    if not settings.supabase_jwt_secret:
+        logger.error("SUPABASE_JWT_SECRET is not configured")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Authentication service misconfigured",
+        )
     try:
         payload = jwt.decode(
             token,

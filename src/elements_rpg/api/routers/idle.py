@@ -8,11 +8,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from elements_rpg.api.auth import get_current_user
+from elements_rpg.api.dependencies import resolve_player_id
 from elements_rpg.api.schemas import SuccessResponse
 from elements_rpg.db.session import get_db
 from elements_rpg.economy.action_queue import ActionType  # noqa: TC001
 from elements_rpg.services import idle_service
-from elements_rpg.services.player_service import get_player_by_supabase_id
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -60,26 +60,6 @@ class AdvanceQueueRequest(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-async def _resolve_player_id(
-    db: AsyncSession,
-    current_user: dict[str, Any],
-) -> Any:
-    """Resolve internal player UUID from JWT sub claim."""
-    supabase_uid: str = current_user["sub"]
-    player = await get_player_by_supabase_id(db, supabase_uid)
-    if player is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No player profile found for this account. Register first.",
-        )
-    return player.id
-
-
-# ---------------------------------------------------------------------------
 # Idle tracker endpoints
 # ---------------------------------------------------------------------------
 
@@ -91,7 +71,7 @@ async def record_clear(
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> SuccessResponse[dict[str, Any]]:
     """Record an area clear time for BRPM calculation."""
-    player_id = await _resolve_player_id(db, current_user)
+    player_id = await resolve_player_id(db, current_user)
     try:
         result = await idle_service.record_clear(
             db,
@@ -112,7 +92,7 @@ async def get_idle_tracker(
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> SuccessResponse[dict[str, Any]]:
     """Get current idle tracking state and BRPM metrics."""
-    player_id = await _resolve_player_id(db, current_user)
+    player_id = await resolve_player_id(db, current_user)
     try:
         result = await idle_service.get_tracker(db, player_id)
     except ValueError as e:
@@ -128,7 +108,7 @@ async def get_offline_gains(
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> SuccessResponse[dict[str, Any]]:
     """Calculate pending offline gains (85% rate, 8hr cap)."""
-    player_id = await _resolve_player_id(db, current_user)
+    player_id = await resolve_player_id(db, current_user)
     try:
         result = await idle_service.calculate_offline_gains(db, player_id, area_id, hours)
     except ValueError as e:
@@ -147,7 +127,7 @@ async def get_action_queue(
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> SuccessResponse[dict[str, Any]]:
     """Get current action queue state (slots, active actions)."""
-    player_id = await _resolve_player_id(db, current_user)
+    player_id = await resolve_player_id(db, current_user)
     try:
         result = await idle_service.get_action_queue(db, player_id)
     except ValueError as e:
@@ -174,7 +154,7 @@ async def add_action(
         reward_resources=body.reward_resources,
     )
 
-    player_id = await _resolve_player_id(db, current_user)
+    player_id = await resolve_player_id(db, current_user)
     try:
         result = await idle_service.add_action(db, player_id, action)
     except ValueError as e:
@@ -189,7 +169,7 @@ async def cancel_action(
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> SuccessResponse[dict[str, Any]]:
     """Cancel a queued action."""
-    player_id = await _resolve_player_id(db, current_user)
+    player_id = await resolve_player_id(db, current_user)
     try:
         result = await idle_service.cancel_action(db, player_id, action_id)
     except ValueError as e:
@@ -204,7 +184,7 @@ async def advance_queue(
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> SuccessResponse[dict[str, Any]]:
     """Process completed actions and return results."""
-    player_id = await _resolve_player_id(db, current_user)
+    player_id = await resolve_player_id(db, current_user)
     try:
         result = await idle_service.advance_queue(db, player_id, body.seconds)
     except ValueError as e:
@@ -218,7 +198,7 @@ async def expand_queue(
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> SuccessResponse[dict[str, Any]]:
     """Purchase an additional action queue slot."""
-    player_id = await _resolve_player_id(db, current_user)
+    player_id = await resolve_player_id(db, current_user)
     try:
         result = await idle_service.expand_queue(db, player_id)
     except ValueError as e:

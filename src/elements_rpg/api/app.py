@@ -23,7 +23,8 @@ def create_app() -> FastAPI:
         - CORS middleware from settings (restrictive origins)
         - All available domain routers (including health check)
         - Global exception handlers (no stack traces in production)
-        - Trusted host middleware for production
+        - Startup validation for required settings
+        - Docs disabled in production
     """
     settings = get_settings()
 
@@ -36,28 +37,43 @@ def create_app() -> FastAPI:
         ),
         # Disable debug mode in production to prevent stack trace leaks
         debug=settings.debug,
-        # Disable docs in production for security (optional — uncomment to restrict):
-        # docs_url="/docs" if settings.debug else None,
-        # redoc_url="/redoc" if settings.debug else None,
+        # Disable docs in production for security
+        docs_url="/docs" if settings.debug else None,
+        redoc_url="/redoc" if settings.debug else None,
     )
 
     _register_cors(app)
     _register_exception_handlers(app)
     _register_routers(app)
-
-    # NOTE: Rate limiting — for production, add slowapi or a Redis-backed
-    # rate limiter middleware. Key endpoints to rate-limit:
-    #   - POST /auth/register, /auth/login (prevent brute force)
-    #   - POST /premium/purchase/* (prevent purchase replay)
-    #   - POST /premium/ads/*/watch (prevent ad reward abuse)
-    #   - POST /taming/attempt (prevent rapid taming)
-    # Example with slowapi:
-    #   from slowapi import Limiter
-    #   limiter = Limiter(key_func=get_remote_address)
-    #   app.state.limiter = limiter
-    #   app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)
+    _register_startup_events(app)
 
     return app
+
+
+# ---------------------------------------------------------------------------
+# Startup events
+# ---------------------------------------------------------------------------
+
+
+def _register_startup_events(app: FastAPI) -> None:
+    """Register startup events to validate configuration."""
+
+    @app.on_event("startup")
+    async def validate_settings() -> None:
+        """Validate required settings and log warnings for missing ones."""
+        settings = get_settings()
+        missing = settings.validate_required_for_production()
+        if missing:
+            for var_name in missing:
+                logger.warning(
+                    "Required setting %s is not configured. This will cause errors in production.",
+                    var_name,
+                )
+            if not settings.debug:
+                logger.error(
+                    "Missing required settings in production mode: %s",
+                    ", ".join(missing),
+                )
 
 
 # ---------------------------------------------------------------------------
@@ -98,16 +114,10 @@ def _register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(ValueError)
     async def value_error_handler(request: Request, exc: ValueError) -> JSONResponse:
+        logger.warning("ValueError on %s %s: %s", request.method, request.url.path, exc)
         return JSONResponse(
             status_code=400,
-            content=_error_body("bad_request", str(exc)),
-        )
-
-    @app.exception_handler(KeyError)
-    async def key_error_handler(request: Request, exc: KeyError) -> JSONResponse:
-        return JSONResponse(
-            status_code=404,
-            content=_error_body("not_found", f"Resource not found: {exc}"),
+            content=_error_body("bad_request", "Invalid request"),
         )
 
     @app.exception_handler(PermissionError)

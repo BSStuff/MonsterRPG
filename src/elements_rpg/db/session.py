@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import TYPE_CHECKING
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -12,6 +13,7 @@ if TYPE_CHECKING:
 from elements_rpg.db.engine import get_engine
 
 
+@lru_cache
 def get_session_factory() -> async_sessionmaker[AsyncSession]:
     """Create an async session factory bound to the cached engine."""
     return async_sessionmaker(

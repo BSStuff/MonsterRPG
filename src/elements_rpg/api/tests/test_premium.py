@@ -185,7 +185,7 @@ class TestPurchaseUpgrade:
         result = PurchaseResult(success=True, gems_spent=200, gems_remaining=800)
         with (
             patch(
-                "elements_rpg.api.routers.premium.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -209,7 +209,7 @@ class TestPurchaseUpgrade:
         result = PurchaseResult(success=False, gems_remaining=50, error="Insufficient gems")
         with (
             patch(
-                "elements_rpg.api.routers.premium.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -229,7 +229,7 @@ class TestPurchaseUpgrade:
         """Should return 400 for unknown upgrade_id."""
         with (
             patch(
-                "elements_rpg.api.routers.premium.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -264,7 +264,7 @@ class TestGetPurchases:
         """Should return purchase counts."""
         with (
             patch(
-                "elements_rpg.api.routers.premium.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -336,7 +336,7 @@ class TestActivateSubscription:
         }
         with (
             patch(
-                "elements_rpg.api.routers.premium.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -361,7 +361,7 @@ class TestActivateSubscription:
         """Should return 400 for unknown plan_id."""
         with (
             patch(
-                "elements_rpg.api.routers.premium.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -411,7 +411,7 @@ class TestGetActiveSubscription:
         }
         with (
             patch(
-                "elements_rpg.api.routers.premium.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -432,7 +432,7 @@ class TestGetActiveSubscription:
         """Should return null data when no active subscription."""
         with (
             patch(
-                "elements_rpg.api.routers.premium.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -474,7 +474,7 @@ class TestCancelSubscription:
         }
         with (
             patch(
-                "elements_rpg.api.routers.premium.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -495,7 +495,7 @@ class TestCancelSubscription:
         """Should return 400 when no active subscription."""
         with (
             patch(
-                "elements_rpg.api.routers.premium.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -548,7 +548,7 @@ class TestGetAvailableAds:
         ]
         with (
             patch(
-                "elements_rpg.api.routers.premium.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -593,7 +593,7 @@ class TestWatchAd:
         }
         with (
             patch(
-                "elements_rpg.api.routers.premium.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -615,7 +615,7 @@ class TestWatchAd:
         """Should return 400 when ad is on cooldown."""
         with (
             patch(
-                "elements_rpg.api.routers.premium.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -635,7 +635,7 @@ class TestWatchAd:
         """Should return 400 when daily limit reached."""
         with (
             patch(
-                "elements_rpg.api.routers.premium.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -655,7 +655,7 @@ class TestWatchAd:
         """Should return 400 for invalid reward type."""
         with (
             patch(
-                "elements_rpg.api.routers.premium.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -701,7 +701,7 @@ class TestGetAdTracker:
         }
         with (
             patch(
-                "elements_rpg.api.routers.premium.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import asdict
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from elements_rpg.combat.manager import CombatManager, CombatResult, CombatRoundResult
@@ -21,6 +22,9 @@ if TYPE_CHECKING:
 
 # In-memory combat sessions (acceptable for MVP -- sessions are short-lived)
 _active_sessions: dict[str, dict[str, Any]] = {}
+
+# Sessions older than this are considered stale and cleaned up
+SESSION_TTL_SECONDS = 1800  # 30 minutes
 
 # Maximum concurrent sessions per player to prevent abuse
 MAX_SESSIONS_PER_PLAYER = 3
@@ -36,6 +40,23 @@ class CombatAlreadyFinishedError(Exception):
 
 class TooManySessionsError(Exception):
     """Raised when a player exceeds the max concurrent combat sessions."""
+
+
+def _cleanup_stale_sessions() -> int:
+    """Remove sessions older than SESSION_TTL_SECONDS.
+
+    Returns:
+        Number of sessions removed.
+    """
+    now = datetime.now(UTC)
+    stale_ids = [
+        sid
+        for sid, session in _active_sessions.items()
+        if (now - session["created_at"]).total_seconds() > SESSION_TTL_SECONDS
+    ]
+    for sid in stale_ids:
+        del _active_sessions[sid]
+    return len(stale_ids)
 
 
 def _get_session(session_id: str, player_id: str) -> dict[str, Any]:
@@ -179,6 +200,9 @@ async def start_combat(
     if not enemy_species_ids:
         raise ValueError("Must specify at least one enemy species")
 
+    # Clean up stale sessions before checking limits
+    _cleanup_stale_sessions()
+
     # Check concurrent session limit
     player_sessions = [s for s in _active_sessions.values() if s["player_id"] == player_id]
     if len(player_sessions) >= MAX_SESSIONS_PER_PLAYER:
@@ -198,6 +222,8 @@ async def start_combat(
         "player_id": player_id,
         "round": 0,
         "skill_registry": _build_skill_registry(),
+        "created_at": datetime.now(UTC),
+        "enemy_levels": [enemy_level] * len(enemy_species_ids),
     }
     _active_sessions[session_id] = session
 
@@ -241,13 +267,14 @@ async def finish_combat(session_id: str, player_id: str) -> dict[str, Any]:
     """End combat and calculate rewards.
 
     Removes the session from active sessions and returns the final state.
+    If the player won, calculates XP and gold rewards based on enemies defeated.
 
     Args:
         session_id: The combat session UUID string.
         player_id: The player's UUID string.
 
     Returns:
-        Dict with final combat results (winner, rounds played, combat log).
+        Dict with final combat results (winner, rounds played, combat log, rewards).
 
     Raises:
         CombatSessionNotFoundError: If session does not exist or belong to player.
@@ -258,11 +285,52 @@ async def finish_combat(session_id: str, player_id: str) -> dict[str, Any]:
 
     manager: CombatManager = session["manager"]
 
+    # Calculate rewards based on enemies defeated
+    rewards = _calculate_rewards(manager, session)
+
     return {
         "finished": manager.is_finished,
         "player_won": manager.player_won,
         "rounds": session["round"],
         "log": [_round_result_to_dict(r) for r in manager.combat_log],
+        "rewards": rewards,
+    }
+
+
+def _calculate_rewards(
+    manager: CombatManager,
+    session: dict[str, Any],
+) -> dict[str, Any]:
+    """Calculate combat rewards based on enemies defeated.
+
+    XP = sum of enemy levels * 10
+    Gold = sum of enemy levels * 5
+
+    Only awards rewards if the player won.
+
+    Args:
+        manager: The combat manager with final state.
+        session: The session dict with enemy_levels data.
+
+    Returns:
+        Dict with xp_earned, gold_earned, and monsters_updated count.
+    """
+    if not manager.player_won:
+        return {"xp_earned": 0, "gold_earned": 0, "monsters_updated": 0}
+
+    enemy_levels = session.get("enemy_levels", [])
+    total_enemy_levels = sum(enemy_levels)
+
+    xp_earned = total_enemy_levels * 10
+    gold_earned = total_enemy_levels * 5
+
+    # Count surviving player monsters that would receive rewards
+    monsters_updated = sum(1 for m in manager.player_team if not m.is_fainted)
+
+    return {
+        "xp_earned": xp_earned,
+        "gold_earned": gold_earned,
+        "monsters_updated": monsters_updated,
     }
 
 

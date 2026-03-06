@@ -2,6 +2,8 @@
 
 Bestiary endpoints are public (no auth). Owned monster endpoints require auth.
 All DB and service calls are mocked.
+
+Note: XP and bond endpoints have been removed (server-authoritative economy).
 """
 
 from __future__ import annotations
@@ -207,7 +209,7 @@ class TestGetOwnedMonsters:
 
         with (
             patch(
-                "elements_rpg.api.routers.monsters.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -252,7 +254,7 @@ class TestGetMonster:
 
         with (
             patch(
-                "elements_rpg.api.routers.monsters.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -275,7 +277,7 @@ class TestGetMonster:
         some_uuid = str(uuid.uuid4())
         with (
             patch(
-                "elements_rpg.api.routers.monsters.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -293,7 +295,7 @@ class TestGetMonster:
     async def test_get_monster_invalid_uuid_returns_400(self, client: AsyncClient) -> None:
         """Should return 400 for non-UUID monster_id."""
         with patch(
-            "elements_rpg.api.routers.monsters.player_service.get_player_by_supabase_id",
+            "elements_rpg.api.dependencies.get_player_by_supabase_id",
             new_callable=AsyncMock,
             return_value=_mock_player(),
         ):
@@ -303,138 +305,7 @@ class TestGetMonster:
 
 
 # ===================================================================
-# 5. POST /monsters/{monster_id}/xp -- grant XP
-# ===================================================================
-
-
-class TestGrantXP:
-    """POST /monsters/{monster_id}/xp."""
-
-    @pytest.mark.asyncio
-    async def test_grant_xp_success(self, client: AsyncClient) -> None:
-        """Should grant XP and return updated monster."""
-        result = {
-            "monster_id": FAKE_MONSTER_ID,
-            "level": 6,
-            "level_up": {"previous_level": 5, "new_level": 6, "levels_gained": 1},
-        }
-
-        with (
-            patch(
-                "elements_rpg.api.routers.monsters.player_service.get_player_by_supabase_id",
-                new_callable=AsyncMock,
-                return_value=_mock_player(),
-            ),
-            patch(
-                "elements_rpg.api.routers.monsters.monster_service.grant_xp",
-                new_callable=AsyncMock,
-                return_value=result,
-            ),
-        ):
-            response = await client.post(
-                f"/monsters/{FAKE_MONSTER_ID}/xp",
-                json={"amount": 100},
-            )
-
-        assert response.status_code == 200
-        body = response.json()
-        assert body["success"] is True
-        assert body["data"]["level_up"]["levels_gained"] == 1
-
-    @pytest.mark.asyncio
-    async def test_grant_xp_negative_returns_422(self, client: AsyncClient) -> None:
-        """Should return 422 for negative XP amount (Pydantic validation)."""
-        with patch(
-            "elements_rpg.api.routers.monsters.player_service.get_player_by_supabase_id",
-            new_callable=AsyncMock,
-            return_value=_mock_player(),
-        ):
-            response = await client.post(
-                f"/monsters/{FAKE_MONSTER_ID}/xp",
-                json={"amount": -10},
-            )
-
-        assert response.status_code == 422
-
-    @pytest.mark.asyncio
-    async def test_grant_xp_monster_not_found(self, client: AsyncClient) -> None:
-        """Should return 400 when monster not found."""
-        with (
-            patch(
-                "elements_rpg.api.routers.monsters.player_service.get_player_by_supabase_id",
-                new_callable=AsyncMock,
-                return_value=_mock_player(),
-            ),
-            patch(
-                "elements_rpg.api.routers.monsters.monster_service.grant_xp",
-                new_callable=AsyncMock,
-                side_effect=ValueError("Monster not found"),
-            ),
-        ):
-            response = await client.post(
-                f"/monsters/{FAKE_MONSTER_ID}/xp",
-                json={"amount": 50},
-            )
-
-        assert response.status_code == 400
-
-
-# ===================================================================
-# 6. POST /monsters/{monster_id}/bond -- increase bond
-# ===================================================================
-
-
-class TestIncreaseBond:
-    """POST /monsters/{monster_id}/bond."""
-
-    @pytest.mark.asyncio
-    async def test_increase_bond_success(self, client: AsyncClient) -> None:
-        """Should increase bond and return updated data."""
-        result = {
-            "monster_id": FAKE_MONSTER_ID,
-            "bond_change": {"previous_bond": 10, "new_bond": 15},
-        }
-
-        with (
-            patch(
-                "elements_rpg.api.routers.monsters.player_service.get_player_by_supabase_id",
-                new_callable=AsyncMock,
-                return_value=_mock_player(),
-            ),
-            patch(
-                "elements_rpg.api.routers.monsters.monster_service.increase_bond",
-                new_callable=AsyncMock,
-                return_value=result,
-            ),
-        ):
-            response = await client.post(
-                f"/monsters/{FAKE_MONSTER_ID}/bond",
-                json={"amount": 5},
-            )
-
-        assert response.status_code == 200
-        body = response.json()
-        assert body["success"] is True
-        assert body["data"]["bond_change"]["new_bond"] == 15
-
-    @pytest.mark.asyncio
-    async def test_increase_bond_negative_returns_422(self, client: AsyncClient) -> None:
-        """Should return 422 for negative bond amount."""
-        with patch(
-            "elements_rpg.api.routers.monsters.player_service.get_player_by_supabase_id",
-            new_callable=AsyncMock,
-            return_value=_mock_player(),
-        ):
-            response = await client.post(
-                f"/monsters/{FAKE_MONSTER_ID}/bond",
-                json={"amount": -3},
-            )
-
-        assert response.status_code == 422
-
-
-# ===================================================================
-# 7. PUT /monsters/{monster_id}/skills -- update equipped skills
+# 5. PUT /monsters/{monster_id}/skills -- update equipped skills
 # ===================================================================
 
 
@@ -451,7 +322,7 @@ class TestUpdateSkills:
 
         with (
             patch(
-                "elements_rpg.api.routers.monsters.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -475,7 +346,7 @@ class TestUpdateSkills:
     async def test_update_skills_too_many_returns_422(self, client: AsyncClient) -> None:
         """Should return 422 when more than 4 skills provided (Pydantic max_length)."""
         with patch(
-            "elements_rpg.api.routers.monsters.player_service.get_player_by_supabase_id",
+            "elements_rpg.api.dependencies.get_player_by_supabase_id",
             new_callable=AsyncMock,
             return_value=_mock_player(),
         ):
@@ -491,7 +362,7 @@ class TestUpdateSkills:
         """Should return 400 when service rejects invalid skills."""
         with (
             patch(
-                "elements_rpg.api.routers.monsters.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -507,3 +378,30 @@ class TestUpdateSkills:
             )
 
         assert response.status_code == 400
+
+
+# ===================================================================
+# 6. Verify deleted endpoints return 404/405
+# ===================================================================
+
+
+class TestDeletedEndpoints:
+    """Verify removed client-trusted endpoints are gone."""
+
+    @pytest.mark.asyncio
+    async def test_xp_endpoint_removed(self, client: AsyncClient) -> None:
+        """POST /monsters/{id}/xp should not exist."""
+        response = await client.post(
+            f"/monsters/{FAKE_MONSTER_ID}/xp",
+            json={"amount": 100},
+        )
+        assert response.status_code in (404, 405)
+
+    @pytest.mark.asyncio
+    async def test_bond_endpoint_removed(self, client: AsyncClient) -> None:
+        """POST /monsters/{id}/bond should not exist."""
+        response = await client.post(
+            f"/monsters/{FAKE_MONSTER_ID}/bond",
+            json={"amount": 5},
+        )
+        assert response.status_code in (404, 405)

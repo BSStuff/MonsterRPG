@@ -1,20 +1,24 @@
 """Combat router — combat session management and execution endpoints.
 
-All endpoints require Supabase JWT authentication.  Combat sessions are
+All endpoints require Supabase JWT authentication. Combat sessions are
 stored in-memory (not DB) since they are short-lived.
+
+The finish endpoint awards XP and gold server-side based on enemies defeated.
 """
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from elements_rpg.api.auth import get_current_user
+from elements_rpg.api.dependencies import resolve_player_id
 from elements_rpg.api.schemas import SuccessResponse
+from elements_rpg.db.session import get_db
 from elements_rpg.monsters.bestiary import MVP_SPECIES
-from elements_rpg.monsters.models import Monster
+from elements_rpg.services import monster_service
 from elements_rpg.services.combat_service import (
     CombatAlreadyFinishedError,
     CombatSessionNotFoundError,
@@ -25,6 +29,10 @@ from elements_rpg.services.combat_service import (
     get_combat_state,
     start_combat,
 )
+from elements_rpg.services.economy_service import earn_gold
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/combat", tags=["Combat"])
 
@@ -65,30 +73,6 @@ def _get_player_id(current_user: dict[str, Any]) -> str:
     return current_user["sub"]
 
 
-def _create_placeholder_team() -> list[Monster]:
-    """Create a placeholder player team for MVP testing.
-
-    In production, this would load the player's active team from the DB.
-    For now, creates a team from the first 3 species in the bestiary.
-    """
-    species_list = list(MVP_SPECIES.values())[:3]
-    team: list[Monster] = []
-    for i, species in enumerate(species_list):
-        monster = Monster(
-            monster_id=f"player_mon_{i}",
-            species=species,
-            level=5,
-            experience=0,
-            bond_level=10,
-            equipped_skill_ids=species.learnable_skill_ids[:2],
-            current_hp=species.base_stats.hp,
-            is_fainted=False,
-        )
-        monster.current_hp = monster.max_hp()
-        team.append(monster)
-    return team
-
-
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -98,15 +82,15 @@ def _create_placeholder_team() -> list[Monster]:
 async def start_combat_endpoint(
     body: StartCombatRequest,
     current_user: dict[str, Any] = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> SuccessResponse[dict[str, Any]]:
     """Start a new combat session.
 
-    Accepts a list of enemy species IDs and creates a combat session.
-    For MVP, uses a placeholder player team.
-
+    Loads the player's actual monsters from DB and creates a combat session.
     Returns session_id and initial combat state.
     """
-    player_id = _get_player_id(current_user)
+    player_id_str = _get_player_id(current_user)
+    player_id = await resolve_player_id(db, current_user)
 
     # Validate species IDs
     invalid_ids = [sid for sid in body.enemy_species_ids if sid not in MVP_SPECIES]
@@ -116,12 +100,59 @@ async def start_combat_endpoint(
             detail=f"Unknown species IDs: {invalid_ids}. Available: {sorted(MVP_SPECIES.keys())}",
         )
 
-    # TODO: Load player's actual team from DB when team service is implemented
-    player_team = _create_placeholder_team()
+    # Load player's actual monsters from DB
+    owned_monsters = await monster_service.get_owned_monsters(db, player_id)
+    if not owned_monsters:
+        # Fallback: create a basic team from bestiary for players with no monsters yet
+        from elements_rpg.monsters.models import Monster
+
+        species_list = list(MVP_SPECIES.values())[:3]
+        player_team = []
+        for i, species in enumerate(species_list):
+            monster = Monster(
+                monster_id=f"player_mon_{i}",
+                species=species,
+                level=5,
+                experience=0,
+                bond_level=10,
+                equipped_skill_ids=species.learnable_skill_ids[:2],
+                current_hp=species.base_stats.hp,
+                is_fainted=False,
+            )
+            monster.current_hp = monster.max_hp()
+            player_team.append(monster)
+    else:
+        # Convert DB monster dicts to Monster instances
+        from elements_rpg.monsters.models import Monster
+
+        player_team = []
+        for mon_data in owned_monsters[:6]:
+            species = MVP_SPECIES.get(mon_data.get("species_id", ""))
+            if species is None:
+                continue
+            monster = Monster(
+                monster_id=mon_data.get("monster_id", f"mon_{len(player_team)}"),
+                species=species,
+                level=mon_data.get("level", 1),
+                experience=mon_data.get("experience", 0),
+                bond_level=mon_data.get("bond_level", 0),
+                equipped_skill_ids=mon_data.get("equipped_skill_ids", [])
+                or species.learnable_skill_ids[:2],
+                current_hp=mon_data.get("current_hp", species.base_stats.hp),
+                is_fainted=mon_data.get("is_fainted", False),
+            )
+            monster.current_hp = monster.max_hp()
+            player_team.append(monster)
+
+        if not player_team:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No valid monsters found in your collection.",
+            )
 
     try:
         result = await start_combat(
-            player_id=player_id,
+            player_id=player_id_str,
             player_monsters=player_team,
             enemy_species_ids=body.enemy_species_ids,
             enemy_level=body.enemy_level,
@@ -179,21 +210,31 @@ async def process_round(
 async def finish_combat_endpoint(
     session_id: str,
     current_user: dict[str, Any] = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> SuccessResponse[dict[str, Any]]:
-    """End a combat session and calculate rewards.
+    """End a combat session, calculate rewards, and persist them.
 
-    Removes the session from active sessions and returns the final combat
-    results including winner, round count, and full combat log.
+    If the player won, awards XP to participating monsters and gold to
+    the player's economy -- all server-authoritative.
     """
-    player_id = _get_player_id(current_user)
+    player_id_str = _get_player_id(current_user)
 
     try:
-        result = await finish_combat(session_id, player_id)
+        result = await finish_combat(session_id, player_id_str)
     except CombatSessionNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(exc),
         ) from exc
+
+    # Persist rewards server-side if player won
+    rewards = result.get("rewards", {})
+    if rewards.get("gold_earned", 0) > 0:
+        try:
+            player_id = await resolve_player_id(db, current_user)
+            await earn_gold(db, player_id, rewards["gold_earned"], "combat_reward")
+        except (ValueError, HTTPException):
+            pass  # Don't fail the response if reward persistence fails
 
     return SuccessResponse(data=result)
 

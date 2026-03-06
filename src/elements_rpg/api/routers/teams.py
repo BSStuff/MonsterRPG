@@ -10,9 +10,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession  # noqa: TC002
 
 from elements_rpg.api.auth import get_current_user
+from elements_rpg.api.dependencies import resolve_player_id
 from elements_rpg.api.schemas import SuccessResponse
 from elements_rpg.db.session import get_db
-from elements_rpg.services import player_service, team_service
+from elements_rpg.services import team_service
 
 router = APIRouter(prefix="/teams", tags=["Teams"])
 
@@ -78,30 +79,6 @@ class AssignRolesRequest(BaseModel):
     )
 
 
-# ---------------------------------------------------------------------------
-# Helper: resolve player_id from JWT
-# ---------------------------------------------------------------------------
-
-
-async def _resolve_player_id(
-    db: AsyncSession,
-    user: dict[str, Any],
-) -> uuid.UUID:
-    """Look up the internal player ID from Supabase user ID.
-
-    Raises:
-        HTTPException 404: If no player record exists for this user.
-    """
-    supabase_user_id = user["sub"]
-    player = await player_service.get_player_by_supabase_id(db, supabase_user_id)
-    if player is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Player profile not found. Register first.",
-        )
-    return player.id
-
-
 def _parse_uuid(value: str, field_name: str) -> uuid.UUID:
     """Parse a string as UUID, raising 400 if invalid."""
     try:
@@ -124,7 +101,7 @@ async def list_teams(
     user: dict[str, Any] = Depends(get_current_user),
 ) -> SuccessResponse[list[dict[str, Any]]]:
     """List all teams for the authenticated player."""
-    player_id = await _resolve_player_id(db, user)
+    player_id = await resolve_player_id(db, user)
     teams = await team_service.get_teams(db, player_id)
     return SuccessResponse(data=teams)
 
@@ -136,7 +113,7 @@ async def create_team(
     user: dict[str, Any] = Depends(get_current_user),
 ) -> SuccessResponse[dict[str, Any]]:
     """Create a new team (up to 6 monsters)."""
-    player_id = await _resolve_player_id(db, user)
+    player_id = await resolve_player_id(db, user)
     try:
         team = await team_service.create_team(
             db,
@@ -161,7 +138,7 @@ async def update_team(
     user: dict[str, Any] = Depends(get_current_user),
 ) -> SuccessResponse[dict[str, Any]]:
     """Update a team's name and/or composition."""
-    player_id = await _resolve_player_id(db, user)
+    player_id = await resolve_player_id(db, user)
     team_uuid = _parse_uuid(team_id, "team_id")
     try:
         team = await team_service.update_team(
@@ -187,7 +164,7 @@ async def delete_team(
     user: dict[str, Any] = Depends(get_current_user),
 ) -> SuccessResponse[dict[str, str]]:
     """Delete a team."""
-    player_id = await _resolve_player_id(db, user)
+    player_id = await resolve_player_id(db, user)
     team_uuid = _parse_uuid(team_id, "team_id")
     try:
         await team_service.delete_team(db, player_id, team_uuid)
@@ -207,7 +184,7 @@ async def reorder_team(
     user: dict[str, Any] = Depends(get_current_user),
 ) -> SuccessResponse[dict[str, Any]]:
     """Reorder members within a team."""
-    player_id = await _resolve_player_id(db, user)
+    player_id = await resolve_player_id(db, user)
     team_uuid = _parse_uuid(team_id, "team_id")
     try:
         team = await team_service.reorder_team(
@@ -232,7 +209,7 @@ async def assign_roles(
     user: dict[str, Any] = Depends(get_current_user),
 ) -> SuccessResponse[dict[str, Any]]:
     """Assign roles to team members."""
-    player_id = await _resolve_player_id(db, user)
+    player_id = await resolve_player_id(db, user)
     team_uuid = _parse_uuid(team_id, "team_id")
     try:
         team = await team_service.assign_roles(

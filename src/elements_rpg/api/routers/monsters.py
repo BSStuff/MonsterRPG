@@ -1,4 +1,8 @@
-"""Monsters router -- bestiary, owned monsters, and monster management endpoints."""
+"""Monsters router -- bestiary, owned monsters, and monster management endpoints.
+
+Client-trusted XP/bond endpoints have been removed. XP and bond are only
+awarded through validated server-side actions (combat completion, taming, etc.).
+"""
 
 from __future__ import annotations
 
@@ -10,9 +14,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession  # noqa: TC002
 
 from elements_rpg.api.auth import get_current_user
+from elements_rpg.api.dependencies import resolve_player_id
 from elements_rpg.api.schemas import SuccessResponse
 from elements_rpg.db.session import get_db
-from elements_rpg.services import monster_service, player_service
+from elements_rpg.services import monster_service
 
 router = APIRouter(prefix="/monsters", tags=["Monsters"])
 
@@ -22,18 +27,6 @@ router = APIRouter(prefix="/monsters", tags=["Monsters"])
 # ---------------------------------------------------------------------------
 
 
-class GrantXPRequest(BaseModel):
-    """Request body for granting XP to a monster."""
-
-    amount: int = Field(ge=0, description="XP to grant")
-
-
-class IncreaseBondRequest(BaseModel):
-    """Request body for increasing bond level."""
-
-    amount: int = Field(ge=0, description="Bond points to add")
-
-
 class UpdateSkillsRequest(BaseModel):
     """Request body for updating equipped skills."""
 
@@ -41,30 +34,6 @@ class UpdateSkillsRequest(BaseModel):
         max_length=4,
         description="Skill IDs to equip (max 4)",
     )
-
-
-# ---------------------------------------------------------------------------
-# Helper: resolve player_id from JWT
-# ---------------------------------------------------------------------------
-
-
-async def _resolve_player_id(
-    db: AsyncSession,
-    user: dict[str, Any],
-) -> uuid.UUID:
-    """Look up the internal player ID from Supabase user ID.
-
-    Raises:
-        HTTPException 404: If no player record exists for this user.
-    """
-    supabase_user_id = user["sub"]
-    player = await player_service.get_player_by_supabase_id(db, supabase_user_id)
-    if player is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Player profile not found. Register first.",
-        )
-    return player.id
 
 
 # ---------------------------------------------------------------------------
@@ -104,7 +73,7 @@ async def get_owned_monsters(
     user: dict[str, Any] = Depends(get_current_user),
 ) -> SuccessResponse[list[dict[str, Any]]]:
     """List all monsters owned by the authenticated player."""
-    player_id = await _resolve_player_id(db, user)
+    player_id = await resolve_player_id(db, user)
     monsters = await monster_service.get_owned_monsters(db, player_id)
     return SuccessResponse(data=monsters)
 
@@ -116,7 +85,7 @@ async def get_monster(
     user: dict[str, Any] = Depends(get_current_user),
 ) -> SuccessResponse[dict[str, Any]]:
     """Get details of a specific owned monster."""
-    player_id = await _resolve_player_id(db, user)
+    player_id = await resolve_player_id(db, user)
     monster_uuid = _parse_uuid(monster_id, "monster_id")
     monster = await monster_service.get_monster(db, player_id, monster_uuid)
     if monster is None:
@@ -127,46 +96,6 @@ async def get_monster(
     return SuccessResponse(data=monster)
 
 
-@router.post("/{monster_id}/xp")
-async def grant_experience(
-    monster_id: str,
-    body: GrantXPRequest,
-    db: AsyncSession = Depends(get_db),
-    user: dict[str, Any] = Depends(get_current_user),
-) -> SuccessResponse[dict[str, Any]]:
-    """Grant experience points to a monster."""
-    player_id = await _resolve_player_id(db, user)
-    monster_uuid = _parse_uuid(monster_id, "monster_id")
-    try:
-        result = await monster_service.grant_xp(db, player_id, monster_uuid, body.amount)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        ) from e
-    return SuccessResponse(data=result)
-
-
-@router.post("/{monster_id}/bond")
-async def increase_bond(
-    monster_id: str,
-    body: IncreaseBondRequest,
-    db: AsyncSession = Depends(get_db),
-    user: dict[str, Any] = Depends(get_current_user),
-) -> SuccessResponse[dict[str, Any]]:
-    """Increase the bond level of a monster."""
-    player_id = await _resolve_player_id(db, user)
-    monster_uuid = _parse_uuid(monster_id, "monster_id")
-    try:
-        result = await monster_service.increase_bond(db, player_id, monster_uuid, body.amount)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        ) from e
-    return SuccessResponse(data=result)
-
-
 @router.put("/{monster_id}/skills")
 async def update_skills(
     monster_id: str,
@@ -175,7 +104,7 @@ async def update_skills(
     user: dict[str, Any] = Depends(get_current_user),
 ) -> SuccessResponse[dict[str, Any]]:
     """Update equipped skills on a monster (max 4)."""
-    player_id = await _resolve_player_id(db, user)
+    player_id = await resolve_player_id(db, user)
     monster_uuid = _parse_uuid(monster_id, "monster_id")
     try:
         result = await monster_service.update_skills(db, player_id, monster_uuid, body.skill_ids)

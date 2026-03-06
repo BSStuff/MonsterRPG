@@ -2,19 +2,17 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    import uuid
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession  # noqa: TC002
 
 from elements_rpg.api.auth import get_current_user
+from elements_rpg.api.dependencies import resolve_player_id
 from elements_rpg.api.schemas import SuccessResponse
 from elements_rpg.db.session import get_db
-from elements_rpg.services import player_service, taming_service
+from elements_rpg.services import taming_service
 
 router = APIRouter(prefix="/taming", tags=["Taming"])
 
@@ -41,30 +39,6 @@ class AttemptTameRequest(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Helper: resolve player_id from JWT
-# ---------------------------------------------------------------------------
-
-
-async def _resolve_player_id(
-    db: AsyncSession,
-    user: dict[str, Any],
-) -> uuid.UUID:
-    """Look up the internal player ID from Supabase user ID.
-
-    Raises:
-        HTTPException 404: If no player record exists for this user.
-    """
-    supabase_user_id = user["sub"]
-    player = await player_service.get_player_by_supabase_id(db, supabase_user_id)
-    if player is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Player profile not found. Register first.",
-        )
-    return player.id
-
-
-# ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
 
@@ -76,7 +50,7 @@ async def calculate_taming_chance(
     user: dict[str, Any] = Depends(get_current_user),
 ) -> SuccessResponse[dict[str, Any]]:
     """Calculate the current taming chance for a species (includes pity bonus)."""
-    player_id = await _resolve_player_id(db, user)
+    player_id = await resolve_player_id(db, user)
     try:
         result = await taming_service.calculate_chance(
             db,
@@ -100,7 +74,7 @@ async def attempt_taming(
     user: dict[str, Any] = Depends(get_current_user),
 ) -> SuccessResponse[dict[str, Any]]:
     """Attempt to tame a monster. Returns success/fail and updated pity state."""
-    player_id = await _resolve_player_id(db, user)
+    player_id = await resolve_player_id(db, user)
     try:
         result = await taming_service.attempt_tame_monster(
             db,
@@ -123,7 +97,7 @@ async def get_taming_tracker(
     user: dict[str, Any] = Depends(get_current_user),
 ) -> SuccessResponse[dict[str, Any]]:
     """Get current pity counters for all species."""
-    player_id = await _resolve_player_id(db, user)
+    player_id = await resolve_player_id(db, user)
     try:
         result = await taming_service.get_tracker(db, player_id)
     except ValueError as e:

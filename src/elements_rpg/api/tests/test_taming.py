@@ -114,7 +114,7 @@ class TestCalculateChance:
 
         with (
             patch(
-                "elements_rpg.api.routers.taming.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -144,7 +144,7 @@ class TestCalculateChance:
         """Should return 400 for unknown species."""
         with (
             patch(
-                "elements_rpg.api.routers.taming.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -166,7 +166,7 @@ class TestCalculateChance:
         """Should return 400 when player has no game save."""
         with (
             patch(
-                "elements_rpg.api.routers.taming.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -250,7 +250,7 @@ class TestAttemptTaming:
 
         with (
             patch(
-                "elements_rpg.api.routers.taming.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -288,7 +288,7 @@ class TestAttemptTaming:
 
         with (
             patch(
-                "elements_rpg.api.routers.taming.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -313,7 +313,7 @@ class TestAttemptTaming:
         """Should return 400 for unknown species."""
         with (
             patch(
-                "elements_rpg.api.routers.taming.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -346,7 +346,7 @@ class TestAttemptTaming:
 
         with (
             patch(
-                "elements_rpg.api.routers.taming.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -389,7 +389,7 @@ class TestGetTracker:
 
         with (
             patch(
-                "elements_rpg.api.routers.taming.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -412,7 +412,7 @@ class TestGetTracker:
         """Should return empty dict when no taming attempts."""
         with (
             patch(
-                "elements_rpg.api.routers.taming.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),
@@ -432,7 +432,7 @@ class TestGetTracker:
         """Should return 400 when no game save exists."""
         with (
             patch(
-                "elements_rpg.api.routers.taming.player_service.get_player_by_supabase_id",
+                "elements_rpg.api.dependencies.get_player_by_supabase_id",
                 new_callable=AsyncMock,
                 return_value=_mock_player(),
             ),

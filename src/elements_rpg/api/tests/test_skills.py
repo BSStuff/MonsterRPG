@@ -1,13 +1,12 @@
-"""Integration tests for skills router -- skill catalog, XP, strategies.
+"""Integration tests for skills router -- skill catalog and strategies (read-only).
 
-All external dependencies (auth, DB, services) are mocked so tests run
-without any live infrastructure.
+XP-granting endpoints have been removed (server-authoritative economy).
 """
 
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
@@ -15,7 +14,6 @@ from httpx import ASGITransport, AsyncClient
 
 from elements_rpg.api.auth import get_current_user
 from elements_rpg.api.config import Settings, get_settings
-from elements_rpg.db.session import get_db
 
 VALID_JWT_PAYLOAD: dict[str, Any] = {
     "sub": "test-player-uuid-123",
@@ -24,8 +22,6 @@ VALID_JWT_PAYLOAD: dict[str, Any] = {
     "aud": "authenticated",
     "exp": 9999999999,
 }
-
-FAKE_PLAYER_ID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 
 
 # ---------------------------------------------------------------------------
@@ -51,36 +47,12 @@ def _create_app():
     return _create()
 
 
-def _mock_db_session() -> AsyncMock:
-    session = AsyncMock()
-    session.flush = AsyncMock()
-    session.commit = AsyncMock()
-    session.rollback = AsyncMock()
-    session.add = MagicMock()
-    return session
-
-
-def _mock_player() -> MagicMock:
-    import uuid
-
-    player = MagicMock()
-    player.id = uuid.UUID(FAKE_PLAYER_ID)
-    return player
-
-
 @pytest.fixture
 def app(test_settings: Settings):
     with patch("elements_rpg.api.app.get_settings", return_value=test_settings):
         application = _create_app()
     application.dependency_overrides[get_settings] = lambda: test_settings
     application.dependency_overrides[get_current_user] = lambda: VALID_JWT_PAYLOAD
-
-    mock_db = _mock_db_session()
-
-    async def _fake_db():
-        yield mock_db
-
-    application.dependency_overrides[get_db] = _fake_db
     return application
 
 
@@ -150,114 +122,7 @@ class TestGetSkill:
 
 
 # ===================================================================
-# 3. POST /skills/{skill_id}/experience
-# ===================================================================
-
-
-class TestGrantSkillXP:
-    """POST /skills/{skill_id}/experience."""
-
-    @pytest.mark.asyncio
-    async def test_grant_xp_success(self, client: AsyncClient) -> None:
-        """Should grant XP and return updated info."""
-        mock_result = {
-            "skill_id": "skill_vine_whip",
-            "name": "Vine Whip",
-            "previous_level": 1,
-            "new_level": 2,
-            "levels_gained": [2],
-            "experience": 10,
-            "effective_power": 45,
-            "effective_cooldown": 1.98,
-            "unlocked_milestones": [],
-        }
-        with (
-            patch(
-                "elements_rpg.api.routers.skills.get_player_by_supabase_id",
-                new_callable=AsyncMock,
-                return_value=_mock_player(),
-            ),
-            patch(
-                "elements_rpg.services.skills_service.grant_skill_xp",
-                new_callable=AsyncMock,
-                return_value=mock_result,
-            ),
-        ):
-            response = await client.post(
-                "/skills/skill_vine_whip/experience",
-                json={"amount": 100},
-            )
-
-        assert response.status_code == 200
-        body = response.json()
-        assert body["success"] is True
-        assert body["data"]["levels_gained"] == [2]
-
-    @pytest.mark.asyncio
-    async def test_grant_xp_invalid_amount(self, client: AsyncClient) -> None:
-        """Should return 422 for zero/negative amount."""
-        with patch(
-            "elements_rpg.api.routers.skills.get_player_by_supabase_id",
-            new_callable=AsyncMock,
-            return_value=_mock_player(),
-        ):
-            response = await client.post(
-                "/skills/skill_vine_whip/experience",
-                json={"amount": 0},
-            )
-        assert response.status_code == 422
-
-    @pytest.mark.asyncio
-    async def test_grant_xp_no_auth(self, app, test_settings: Settings) -> None:
-        """Should return 401/403 without auth."""
-        app.dependency_overrides.pop(get_current_user, None)
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as unauthed:
-            response = await unauthed.post(
-                "/skills/skill_vine_whip/experience",
-                json={"amount": 50},
-            )
-        assert response.status_code in (401, 403)
-
-    @pytest.mark.asyncio
-    async def test_grant_xp_skill_not_found(self, client: AsyncClient) -> None:
-        """Should return 400 for unknown skill."""
-        with (
-            patch(
-                "elements_rpg.api.routers.skills.get_player_by_supabase_id",
-                new_callable=AsyncMock,
-                return_value=_mock_player(),
-            ),
-            patch(
-                "elements_rpg.services.skills_service.grant_skill_xp",
-                new_callable=AsyncMock,
-                side_effect=ValueError("Skill 'skill_bad' not found in catalog"),
-            ),
-        ):
-            response = await client.post(
-                "/skills/skill_bad/experience",
-                json={"amount": 50},
-            )
-        assert response.status_code == 400
-
-    @pytest.mark.asyncio
-    async def test_grant_xp_player_not_found(self, client: AsyncClient) -> None:
-        """Should return 404 if player not found."""
-        with patch(
-            "elements_rpg.api.routers.skills.get_player_by_supabase_id",
-            new_callable=AsyncMock,
-            return_value=None,
-        ):
-            response = await client.post(
-                "/skills/skill_vine_whip/experience",
-                json={"amount": 50},
-            )
-        assert response.status_code == 404
-
-
-# ===================================================================
-# 4. GET /skills/strategies
+# 3. GET /skills/strategies
 # ===================================================================
 
 
@@ -284,76 +149,27 @@ class TestGetStrategies:
 
 
 # ===================================================================
-# 5. POST /skills/strategies/{strategy}/experience
+# 4. Verify deleted endpoints return 404/405
 # ===================================================================
 
 
-class TestGrantStrategyXP:
-    """POST /skills/strategies/{strategy}/experience."""
+class TestDeletedEndpoints:
+    """Verify removed client-trusted XP endpoints are gone."""
 
     @pytest.mark.asyncio
-    async def test_grant_strategy_xp_success(self, client: AsyncClient) -> None:
-        """Should grant strategy XP and return proficiency info."""
-        mock_result = {
-            "strategy": "aggressive",
-            "previous_level": 1,
-            "new_level": 2,
-            "levels_gained": [2],
-            "experience": 50,
-            "is_mastered": False,
-        }
-        with (
-            patch(
-                "elements_rpg.api.routers.skills.get_player_by_supabase_id",
-                new_callable=AsyncMock,
-                return_value=_mock_player(),
-            ),
-            patch(
-                "elements_rpg.services.skills_service.grant_strategy_xp",
-                new_callable=AsyncMock,
-                return_value=mock_result,
-            ),
-        ):
-            response = await client.post(
-                "/skills/strategies/aggressive/experience",
-                json={"amount": 300},
-            )
-
-        assert response.status_code == 200
-        body = response.json()
-        assert body["success"] is True
-        assert body["data"]["strategy"] == "aggressive"
+    async def test_skill_xp_endpoint_removed(self, client: AsyncClient) -> None:
+        """POST /skills/{id}/experience should not exist."""
+        response = await client.post(
+            "/skills/skill_vine_whip/experience",
+            json={"amount": 100},
+        )
+        assert response.status_code in (404, 405)
 
     @pytest.mark.asyncio
-    async def test_grant_strategy_xp_invalid_strategy(self, client: AsyncClient) -> None:
-        """Should return 400 for invalid strategy type."""
-        with (
-            patch(
-                "elements_rpg.api.routers.skills.get_player_by_supabase_id",
-                new_callable=AsyncMock,
-                return_value=_mock_player(),
-            ),
-            patch(
-                "elements_rpg.services.skills_service.grant_strategy_xp",
-                new_callable=AsyncMock,
-                side_effect=ValueError("Invalid strategy 'invalid'"),
-            ),
-        ):
-            response = await client.post(
-                "/skills/strategies/invalid/experience",
-                json={"amount": 100},
-            )
-        assert response.status_code == 400
-
-    @pytest.mark.asyncio
-    async def test_grant_strategy_xp_no_auth(self, app, test_settings: Settings) -> None:
-        """Should return 401/403 without auth."""
-        app.dependency_overrides.pop(get_current_user, None)
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as unauthed:
-            response = await unauthed.post(
-                "/skills/strategies/aggressive/experience",
-                json={"amount": 100},
-            )
-        assert response.status_code in (401, 403)
+    async def test_strategy_xp_endpoint_removed(self, client: AsyncClient) -> None:
+        """POST /skills/strategies/{strategy}/experience should not exist."""
+        response = await client.post(
+            "/skills/strategies/aggressive/experience",
+            json={"amount": 100},
+        )
+        assert response.status_code in (404, 405)

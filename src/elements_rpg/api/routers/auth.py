@@ -156,7 +156,19 @@ async def register(
         )
 
     # Create local player profile + initial game save
-    await create_player(db, supabase_user_id=supabase_uid, username=body.username)
+    try:
+        await create_player(db, supabase_user_id=supabase_uid, username=body.username)
+    except Exception as exc:
+        logger.error(
+            "Failed to create local player profile for Supabase user %s: %s",
+            supabase_uid,
+            exc,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Account created but player profile setup failed. "
+            "Please contact support or try logging in.",
+        ) from exc
 
     auth_resp = AuthResponse(
         access_token=data.get("access_token", ""),
