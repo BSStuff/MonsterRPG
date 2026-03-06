@@ -2,26 +2,44 @@
   "outputDirectory": "webgl-build",
   "headers": [
     {
-      "source": "/(.*)\\.gz",
+      "source": "/Build/(.*)\\.js\\.br",
       "headers": [
-        { "key": "Content-Encoding", "value": "gzip" }
+        { "key": "Content-Encoding", "value": "br" },
+        { "key": "Content-Type", "value": "application/javascript" }
       ]
     },
     {
-      "source": "/(.*)\\.br",
+      "source": "/Build/(.*)\\.wasm\\.br",
       "headers": [
-        { "key": "Content-Encoding", "value": "br" }
-      ]
-    },
-    {
-      "source": "/(.*)\\.wasm",
-      "headers": [
+        { "key": "Content-Encoding", "value": "br" },
         { "key": "Content-Type", "value": "application/wasm" }
       ]
     },
     {
-      "source": "/(.*)\\.data",
+      "source": "/Build/(.*)\\.data\\.br",
       "headers": [
+        { "key": "Content-Encoding", "value": "br" },
+        { "key": "Content-Type", "value": "application/octet-stream" }
+      ]
+    },
+    {
+      "source": "/Build/(.*)\\.js\\.gz",
+      "headers": [
+        { "key": "Content-Encoding", "value": "gzip" },
+        { "key": "Content-Type", "value": "application/javascript" }
+      ]
+    },
+    {
+      "source": "/Build/(.*)\\.wasm\\.gz",
+      "headers": [
+        { "key": "Content-Encoding", "value": "gzip" },
+        { "key": "Content-Type", "value": "application/wasm" }
+      ]
+    },
+    {
+      "source": "/Build/(.*)\\.data\\.gz",
+      "headers": [
+        { "key": "Content-Encoding", "value": "gzip" },
         { "key": "Content-Type", "value": "application/octet-stream" }
       ]
     }
