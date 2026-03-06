@@ -15,6 +15,8 @@ RUN uv sync --frozen --no-dev
 COPY src/ src/
 COPY alembic/ alembic/
 COPY alembic.ini ./
+COPY start.sh ./
+RUN chmod +x start.sh
 
 # Create non-root user for security
 RUN adduser --disabled-password --gecos "" appuser && chown -R appuser:appuser /app
@@ -23,5 +25,5 @@ USER appuser
 # Expose port
 EXPOSE 8000
 
-# Run with uvicorn
-CMD ["uv", "run", "uvicorn", "elements_rpg.api.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
+# Run migrations then start the server
+CMD ["sh", "start.sh"]
