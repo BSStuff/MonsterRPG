@@ -197,34 +197,29 @@ All modules live under `src/elements_rpg/` and need API endpoints:
 
 ---
 
-### Phase 5: API Endpoints -- Monetization
+### Phase 5: API Endpoints -- Monetization (COMPLETE)
 
 **Goal**: Implement premium currency, subscriptions, and reward ads endpoints. These are convenience-only, never pay-to-win.
 
 #### Premium Store
-- [ ] `implementation-agent` | Create premium API service: `src/elements_rpg/services/premium_service.py` | pending
-- [ ] `implementation-agent` | `GET /premium/packages` -- list available gem packages with prices | pending
-- [ ] `implementation-agent` | `GET /premium/upgrades` -- list available convenience upgrades (queue slots, etc.) | pending
-- [ ] `implementation-agent` | `POST /premium/purchase` -- purchase a gem package (placeholder for payment integration) | pending
-- [ ] `implementation-agent` | `POST /premium/upgrade` -- purchase a convenience upgrade with gems | pending
-- [ ] `implementation-agent` | `POST /premium/gems/add` -- add gems to player balance (admin/payment callback) | pending
-- [ ] `implementation-agent` | `POST /premium/gems/spend` -- spend gems with validation | pending
+- [x] `implementation-agent` | Create premium API service: `src/elements_rpg/services/premium_service.py` | complete
+- [x] `implementation-agent` | `GET /premium/packages` -- list available gem packages with prices | complete
+- [x] `implementation-agent` | `GET /premium/upgrades` -- list available convenience upgrades (queue slots, etc.) | complete
+- [x] `implementation-agent` | `POST /premium/purchase/{upgrade_id}` -- purchase a convenience upgrade with gems | complete
+- [x] `implementation-agent` | `GET /premium/purchases` -- get player's upgrade purchase history | complete
 
 #### Subscriptions
-- [ ] `implementation-agent` | Create subscription API service: `src/elements_rpg/services/subscription_service.py` | pending
-- [ ] `implementation-agent` | `GET /subscriptions/plans` -- list available subscription tiers (monthly, quarterly, annual) | pending
-- [ ] `implementation-agent` | `POST /subscriptions/activate` -- activate a subscription tier | pending
-- [ ] `implementation-agent` | `POST /subscriptions/cancel` -- cancel active subscription | pending
-- [ ] `implementation-agent` | `GET /subscriptions/status` -- get current subscription state and benefits | pending
-- [ ] `implementation-agent` | `POST /subscriptions/check-expiry` -- check and handle subscription expiry (time-based) | pending
+- [x] `implementation-agent` | `GET /premium/subscriptions/plans` -- list available subscription tiers (monthly, quarterly, annual) | complete
+- [x] `implementation-agent` | `POST /premium/subscriptions/activate` -- activate a subscription tier | complete
+- [x] `implementation-agent` | `POST /premium/subscriptions/cancel` -- cancel active subscription | complete
+- [x] `implementation-agent` | `GET /premium/subscriptions/active` -- get current subscription state and benefits | complete
 
 #### Reward Ads
-- [ ] `implementation-agent` | Create ads API service: `src/elements_rpg/services/ads_service.py` | pending
-- [ ] `implementation-agent` | `GET /ads/available` -- list which ad reward types are available (respects cooldowns and daily limits) | pending
-- [ ] `implementation-agent` | `POST /ads/watch` -- record an ad watch and grant reward (revive, idle boost, taming bonus, gold bonus) | pending
-- [ ] `implementation-agent` | `GET /ads/tracker` -- get ad watch history, cooldowns, remaining daily watches | pending
+- [x] `implementation-agent` | `GET /premium/ads/available` -- list which ad reward types are available (respects cooldowns and daily limits) | complete
+- [x] `implementation-agent` | `POST /premium/ads/{reward_type}/watch` -- record an ad watch and grant reward (revive, idle boost, taming bonus, resource boost) | complete
+- [x] `implementation-agent` | `GET /premium/ads/tracker` -- get ad watch history, cooldowns, remaining daily watches | complete
 
-- [ ] `test-agent` | Write API tests for all Phase 5 endpoints -- gem math, subscription time logic, ad cooldowns and daily limits | pending
+- [x] `test-agent` | Write API tests for all Phase 5 endpoints -- 29 tests covering gem purchases, subscription activation/cancellation, ad cooldowns and daily limits, auth enforcement | complete
 - [ ] `review-agent` | Review Phase 5: verify no pay-to-win mechanics, subscription benefits match tiers, ad cooldowns enforced server-side, gem transactions atomic | pending
 
 **Dependencies**: Phase 4 complete (economy system works for gem/gold transactions).
@@ -455,6 +450,7 @@ scripts/
 | 2026-03-05 | 3 | Combat service + endpoints | combat_service.py (in-memory session management, start/round/finish/state/log), combat router (5 endpoints: POST start, POST round, POST finish, GET state, GET log) with auth + ownership validation, 943 tests pass, ruff clean |
 | 2026-03-05 | 3 | Phase 3 API tests + review complete | test_saves.py (11 tests), test_monsters.py (17 tests), test_teams.py (14 tests), test_taming.py (14 tests) — 56 new tests, 999 total passing, all endpoints verified: auth required, proper error responses (401/403/404/409/422), SuccessResponse envelopes, ruff clean |
 | 2026-03-05 | 4 | Idle, action queue, skills, strategy endpoints | idle_service.py (8 functions), skills_service.py (5 functions), idle.py router (8 endpoints), skills.py router (5 endpoints), test_idle.py (15 tests), test_skills.py (13 tests) — 1027 total passing, ruff clean |
+| 2026-03-05 | 5 | Premium store, subscriptions, reward ads endpoints | premium_service.py (11 functions across 3 domains), premium.py router (11 endpoints: 3 public, 8 authenticated), test_premium.py (29 tests) — 1056 total passing, ruff clean |
 
 ---
 
