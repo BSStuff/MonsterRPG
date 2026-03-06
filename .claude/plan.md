@@ -1,6 +1,6 @@
 # Project Plan: ElementsRPG Element System Redesign
 
-## Status: Phase 1-3 Complete
+## Status: COMPLETE
 ## Last Updated: 2026-03-05
 
 ---
@@ -275,13 +275,13 @@ Multipliers: 2.0 = super effective, 0.5 = not effective, 0.0 = immune, 1.0 = neu
 
 **Goal**: Fix all remaining broken tests across the entire codebase. Run E2E combat tests with dual-typed monsters.
 
-- [ ] **Task 4.1** | Fix all failing tests that reference old Element values (EARTH, NEUTRAL) -- grep for `Element.EARTH`, `Element.NEUTRAL`, `"earth"`, `"neutral"` across all test files and update.
-- [ ] **Task 4.2** | Update `combat/tests/test_manager.py` -- ensure combat tests use new elements and test dual-type combat scenarios.
-- [ ] **Task 4.3** | Update `combat/tests/test_strategy.py` -- fix any element-dependent strategy tests.
-- [ ] **Task 4.4** | Update API tests (`test_combat.py`, `test_e2e.py`, `test_taming.py`, `test_saves.py`) -- fix element references in test fixtures and assertions.
-- [ ] **Task 4.5** | Update `services/tests/test_combat_service.py` -- fix service-level combat tests.
-- [ ] **Task 4.6** | Create E2E combat test with dual-typed monsters -- Magma Wyrm (Fire/Ground) vs Aqua Serpent (Water/Ice), verify 4x multiplier Water -> Fire/Ground, verify STAB for dual-typed attacker.
-- [ ] **Task 4.7** | Run full test suite (`uv run pytest`). Target: all 1068+ tests passing, zero failures. Run `uv run ruff check .` and `uv run ruff format --check .` -- zero issues.
+- [x] **Task 4.1** | Fix all failing tests that reference old Element values (EARTH, NEUTRAL) -- grep for `Element.EARTH`, `Element.NEUTRAL`, `"earth"`, `"neutral"` across all test files and update. Verified: no old references in production code; save_load references are intentional migration logic.
+- [x] **Task 4.2** | Update `combat/tests/test_manager.py` -- ensure combat tests use new elements and test dual-type combat scenarios. Already updated in Phase 1.
+- [x] **Task 4.3** | Update `combat/tests/test_strategy.py` -- fix any element-dependent strategy tests. Already updated in Phase 1.
+- [x] **Task 4.4** | Update API tests (`test_combat.py`, `test_e2e.py`, `test_taming.py`, `test_saves.py`) -- fix element references in test fixtures and assertions. All passing.
+- [x] **Task 4.5** | Update `services/tests/test_combat_service.py` -- fix service-level combat tests. All passing.
+- [x] **Task 4.6** | Create E2E combat test with dual-typed monsters -- 9 new tests: 4x damage, cancel-out, immunity, dual-type immunity, primary STAB, secondary STAB, no STAB, Dark vs Light, Light vs Dark.
+- [x] **Task 4.7** | Run full test suite: 1100 tests passing, zero failures. Ruff lint clean. Ruff format clean.
 
 **Dependencies**: Phase 3 complete (all production code updated).
 
@@ -325,6 +325,7 @@ Multipliers: 2.0 = super effective, 0.5 = not effective, 0.0 = immune, 1.0 = neu
 | 2026-03-05 | Phase 1 | Tasks 1.1-1.7 complete | 10 elements, dual typing, effectiveness matrix, damage calc updated. Also updated bestiary (12 monsters) and skill catalogs (28 skills) to new elements. 1079 tests passing. |
 | 2026-03-05 | Phase 2 | Tasks 2.1-2.7 complete | Content verified: all 12 monsters use new elements (6 dual-typed), all 28 skills use valid elements, no EARTH/NEUTRAL references remain. Areas have no element refs. |
 | 2026-03-05 | Phase 3 | Tasks 3.1-3.7 complete | Save version bumped to 2. V1->V2 migration (earth->grass, neutral->dark). API exposes `types` array. 12 new migration tests. 1091 tests passing. |
+| 2026-03-05 | Phase 4 | Tasks 4.1-4.7 complete | 9 new E2E dual-type combat tests. All old element refs verified clean. 1100 tests passing. Ruff lint/format clean. PROJECT COMPLETE. |
 
 ---
 

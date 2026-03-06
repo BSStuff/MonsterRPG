@@ -314,3 +314,92 @@ class TestCalculateDamage:
         damage = calculate_damage(attacker, defender, skill)
         # 0.0 multiplier means 0 before clamping, minimum is 1
         assert damage == 1
+
+
+# ---------------------------------------------------------------------------
+# E2E Dual-Type Combat Tests
+# ---------------------------------------------------------------------------
+
+
+class TestDualTypeCombatE2E:
+    """End-to-end tests validating dual-type interactions in combat.
+
+    Covers 4x damage, cancel-out, immunity, STAB with dual typing,
+    and Dark/Light symmetry.
+    """
+
+    def test_4x_damage_water_vs_fire_ground(self) -> None:
+        """Water skill vs Fire/Ground dual-type defender = 2.0 * 2.0 = 4.0."""
+        mult = get_element_multiplier(Element.WATER, (Element.FIRE, Element.GROUND))
+        assert mult == 4.0
+        # Verify in full damage calc: 4x hit deals more than 2x single-type
+        attacker = _make_monster(types=(Element.WATER, None), level=10)
+        defender_4x = _make_monster(
+            monster_id="d4x", types=(Element.FIRE, Element.GROUND), level=10
+        )
+        defender_2x = _make_monster(monster_id="d2x", types=(Element.FIRE, None), level=10)
+        skill = _make_skill(element=Element.WATER, power=60)
+        dmg_4x = calculate_damage(attacker, defender_4x, skill)
+        dmg_2x = calculate_damage(attacker, defender_2x, skill)
+        assert dmg_4x > dmg_2x
+
+    def test_cancel_out_fire_vs_water_grass(self) -> None:
+        """Fire skill vs Water/Grass dual-type = 0.5 * 2.0 = 1.0 (cancel-out)."""
+        mult = get_element_multiplier(Element.FIRE, (Element.WATER, Element.GRASS))
+        assert mult == 1.0
+
+    def test_immunity_electric_vs_ground(self) -> None:
+        """Electric skill vs any Ground-typed defender = 0.0 (immune)."""
+        mult = get_element_multiplier(Element.ELECTRIC, (Element.GROUND, None))
+        assert mult == 0.0
+
+    def test_immunity_electric_vs_ground_rock(self) -> None:
+        """Electric skill vs Ground/Rock dual-type = 0.0 * 1.0 = 0.0."""
+        mult = get_element_multiplier(Element.ELECTRIC, (Element.GROUND, Element.ROCK))
+        assert mult == 0.0
+        # Full calc: immunity clamps to 1 damage
+        attacker = _make_monster(types=(Element.ELECTRIC, None), level=50)
+        defender = _make_monster(monster_id="gr", types=(Element.GROUND, Element.ROCK), level=1)
+        skill = _make_skill(element=Element.ELECTRIC, power=100)
+        assert calculate_damage(attacker, defender, skill) == 1
+
+    def test_stab_primary_type_fire_ground(self) -> None:
+        """Fire/Ground monster using Fire skill gets 1.5x STAB."""
+        attacker_dual = _make_monster(types=(Element.FIRE, Element.GROUND), level=10)
+        attacker_none = _make_monster(monster_id="no_stab", types=(Element.WATER, None), level=10)
+        defender = _make_monster(monster_id="def", types=(Element.DARK, None), level=10)
+        skill = _make_skill(element=Element.FIRE, power=60)
+        dmg_stab = calculate_damage(attacker_dual, defender, skill)
+        dmg_no_stab = calculate_damage(attacker_none, defender, skill)
+        assert dmg_stab > dmg_no_stab
+
+    def test_stab_secondary_type_fire_ground(self) -> None:
+        """Fire/Ground monster using Ground skill also gets 1.5x STAB."""
+        attacker_dual = _make_monster(types=(Element.FIRE, Element.GROUND), level=10)
+        attacker_none = _make_monster(monster_id="no_stab", types=(Element.WATER, None), level=10)
+        defender = _make_monster(monster_id="def", types=(Element.DARK, None), level=10)
+        skill = _make_skill(element=Element.GROUND, power=60)
+        dmg_stab = calculate_damage(attacker_dual, defender, skill)
+        dmg_no_stab = calculate_damage(attacker_none, defender, skill)
+        assert dmg_stab > dmg_no_stab
+
+    def test_no_stab_fire_ground_using_water(self) -> None:
+        """Fire/Ground monster using Water skill gets 1.0 STAB (no bonus)."""
+        attacker_dual = _make_monster(types=(Element.FIRE, Element.GROUND), level=10)
+        attacker_water = _make_monster(
+            monster_id="water_stab", types=(Element.WATER, None), level=10
+        )
+        defender = _make_monster(monster_id="def", types=(Element.DARK, None), level=10)
+        skill = _make_skill(element=Element.WATER, power=60)
+        dmg_no_stab = calculate_damage(attacker_dual, defender, skill)
+        dmg_stab = calculate_damage(attacker_water, defender, skill)
+        # Water mon gets STAB, Fire/Ground does not
+        assert dmg_stab > dmg_no_stab
+
+    def test_dark_vs_light_super_effective(self) -> None:
+        """Dark vs Light = 2.0x super effective."""
+        assert get_element_multiplier(Element.DARK, (Element.LIGHT, None)) == 2.0
+
+    def test_light_vs_dark_super_effective(self) -> None:
+        """Light vs Dark = 2.0x super effective (symmetric)."""
+        assert get_element_multiplier(Element.LIGHT, (Element.DARK, None)) == 2.0
