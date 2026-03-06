@@ -1,7 +1,14 @@
+# Unity project (2+ GB of binary assets, not needed for Python backend)
+ElementsRPG/
+unity/
+webgl-build/
+
+# Version control and CI
 .git
+.github
+
+# Python environments and caches
 .venv
-.env
-.claude
 __pycache__
 *.pyc
 .pytest_cache
@@ -10,3 +17,13 @@ __pycache__
 *.egg-info
 dist
 build
+
+# IDE and project config
+.claude
+.env
+*.md
+scripts/
+
+# OS files
+Thumbs.db
+.DS_Store
