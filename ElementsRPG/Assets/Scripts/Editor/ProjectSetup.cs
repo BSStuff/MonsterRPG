@@ -217,6 +217,22 @@ public static class ProjectSetup
         passwordField.GetComponent<TMP_InputField>().contentType =
             TMP_InputField.ContentType.Password;
 
+        // ConfirmPasswordGroup (starts inactive — only shown in register mode)
+        var confirmPasswordGroup = CreateUIObject("ConfirmPasswordGroup", loginPanel.transform);
+        var cpgLE = confirmPasswordGroup.AddComponent<LayoutElement>();
+        cpgLE.preferredHeight = 50;
+        var cpgVLG = confirmPasswordGroup.AddComponent<VerticalLayoutGroup>();
+        cpgVLG.childForceExpandWidth = true;
+        cpgVLG.childForceExpandHeight = true;
+        cpgVLG.childControlWidth = true;
+        cpgVLG.childControlHeight = true;
+
+        var confirmPasswordField = CreateTMPInputField(
+            confirmPasswordGroup.transform, "ConfirmPasswordField", "Confirm Password", 50);
+        confirmPasswordField.GetComponent<TMP_InputField>().contentType =
+            TMP_InputField.ContentType.Password;
+        confirmPasswordGroup.SetActive(false);
+
         // UsernameGroup
         var usernameGroup = CreateUIObject("UsernameGroup", loginPanel.transform);
         var ugLE = usernameGroup.AddComponent<LayoutElement>();
@@ -263,6 +279,8 @@ public static class ProjectSetup
             emailField.GetComponent<TMP_InputField>());
         SetPrivateField(loginCtrl, "passwordField",
             passwordField.GetComponent<TMP_InputField>());
+        SetPrivateField(loginCtrl, "confirmPasswordField",
+            confirmPasswordField.GetComponent<TMP_InputField>());
         SetPrivateField(loginCtrl, "usernameField",
             usernameField.GetComponent<TMP_InputField>());
         SetPrivateField(loginCtrl, "signInButton",
@@ -275,6 +293,7 @@ public static class ProjectSetup
             errorGO.GetComponent<TextMeshProUGUI>());
         SetPrivateField(loginCtrl, "toggleModeText",
             toggleText);
+        SetPrivateField(loginCtrl, "confirmPasswordGroup", confirmPasswordGroup);
         SetPrivateField(loginCtrl, "usernameGroup", usernameGroup);
 
         EditorSceneManager.SaveScene(scene, $"{ScenesFolder}/Login.unity");
@@ -980,5 +999,58 @@ public static class ProjectSetup
         rt.pivot = new Vector2(0.5f, 0f);
         rt.offsetMin = Vector2.zero;
         rt.offsetMax = new Vector2(0, height);
+    }
+
+    /// <summary>
+    /// Rebuilds WebGL to the webgl-build folder at the repo root.
+    /// Run via: ElementsRPG > Build WebGL
+    /// </summary>
+    [MenuItem("ElementsRPG/Build WebGL")]
+    public static void BuildWebGL()
+    {
+        // Get repo root (one level up from the Unity project)
+        string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+        string buildPath = Path.Combine(repoRoot, "webgl-build");
+
+        // Ensure output directory exists
+        if (!Directory.Exists(buildPath))
+            Directory.CreateDirectory(buildPath);
+
+        // Get scenes from build settings
+        var scenes = new string[EditorBuildSettings.scenes.Length];
+        for (int i = 0; i < EditorBuildSettings.scenes.Length; i++)
+            scenes[i] = EditorBuildSettings.scenes[i].path;
+
+        if (scenes.Length == 0)
+        {
+            Debug.LogError("[ElementsRPG] No scenes in Build Settings! Run 'ElementsRPG > Setup Project' first.");
+            return;
+        }
+
+        Debug.Log($"[ElementsRPG] Building WebGL to: {buildPath}");
+
+        var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+        {
+            scenes = scenes,
+            locationPathName = buildPath,
+            target = BuildTarget.WebGL,
+            options = BuildOptions.None
+        });
+
+        if (report.summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded)
+            Debug.Log($"[ElementsRPG] WebGL build succeeded! Size: {report.summary.totalSize / (1024 * 1024)}MB. Output: {buildPath}");
+        else
+            Debug.LogError($"[ElementsRPG] WebGL build failed: {report.summary.result}");
+    }
+
+    /// <summary>
+    /// Runs Setup Project then Build WebGL in sequence.
+    /// Run via: ElementsRPG > Setup + Build WebGL
+    /// </summary>
+    [MenuItem("ElementsRPG/Setup + Build WebGL")]
+    public static void SetupAndBuild()
+    {
+        SetupProject();
+        BuildWebGL();
     }
 }

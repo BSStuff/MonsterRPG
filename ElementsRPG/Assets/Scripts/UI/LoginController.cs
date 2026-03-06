@@ -14,6 +14,7 @@ public class LoginController : MonoBehaviour
     [Header("Input Fields")]
     [SerializeField] private TMP_InputField emailField;
     [SerializeField] private TMP_InputField passwordField;
+    [SerializeField] private TMP_InputField confirmPasswordField;
     [SerializeField] private TMP_InputField usernameField;
 
     [Header("Buttons")]
@@ -26,6 +27,7 @@ public class LoginController : MonoBehaviour
     [SerializeField] private TMP_Text toggleModeText;
 
     [Header("Layout Groups")]
+    [SerializeField] private GameObject confirmPasswordGroup;
     [SerializeField] private GameObject usernameGroup;
 
     private bool isRegisterMode = false;
@@ -62,9 +64,99 @@ public class LoginController : MonoBehaviour
 
         // Initial UI state: login mode
         errorText.gameObject.SetActive(false);
+        confirmPasswordGroup.SetActive(false);
         usernameGroup.SetActive(false);
         signUpButton.gameObject.SetActive(false);
         UpdateToggleModeText();
+
+        // Fix confirm password and username field layouts to match other fields at runtime
+        FixExtraFieldLayout(confirmPasswordField, confirmPasswordGroup);
+        FixExtraFieldLayout(usernameField, usernameGroup);
+    }
+
+    /// <summary>
+    /// Handles Tab key navigation between input fields and Enter key submission.
+    /// TMP_InputField does not support tab navigation by default in WebGL,
+    /// so we handle it manually here.
+    /// </summary>
+    private void Update()
+    {
+        // Tab key: cycle focus between input fields
+        // Login mode: email -> password -> (cycle)
+        // Register mode: email -> password -> confirmPassword -> username -> (cycle)
+        if (Input.GetKeyDown(KeyCode.Tab))
+        {
+            if (emailField.isFocused)
+            {
+                passwordField.Select();
+                passwordField.ActivateInputField();
+            }
+            else if (passwordField.isFocused)
+            {
+                if (isRegisterMode && confirmPasswordGroup.activeSelf)
+                {
+                    confirmPasswordField.Select();
+                    confirmPasswordField.ActivateInputField();
+                }
+                else
+                {
+                    emailField.Select();
+                    emailField.ActivateInputField();
+                }
+            }
+            else if (confirmPasswordField.isFocused)
+            {
+                if (isRegisterMode && usernameGroup.activeSelf)
+                {
+                    usernameField.Select();
+                    usernameField.ActivateInputField();
+                }
+                else
+                {
+                    emailField.Select();
+                    emailField.ActivateInputField();
+                }
+            }
+            else if (usernameField.isFocused)
+            {
+                emailField.Select();
+                emailField.ActivateInputField();
+            }
+        }
+
+        // Enter key: submit the current form
+        if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
+        {
+            if (isRegisterMode)
+                OnSignUpClicked();
+            else
+                OnSignInClicked();
+        }
+    }
+
+    /// <summary>
+    /// Ensures an input field and its parent group have LayoutElement
+    /// settings that match the email and password fields (preferredHeight=50).
+    /// Fixes disproportionate sizing caused by the editor setup script.
+    /// </summary>
+    private void FixExtraFieldLayout(TMP_InputField field, GameObject group)
+    {
+        if (field == null || group == null)
+            return;
+
+        // Fix the input field itself
+        var fieldLayout = field.GetComponent<LayoutElement>();
+        if (fieldLayout == null)
+            fieldLayout = field.gameObject.AddComponent<LayoutElement>();
+        fieldLayout.preferredHeight = 50;
+        fieldLayout.minHeight = 50;
+
+        // Fix the parent group container
+        var groupLayout = group.GetComponent<LayoutElement>();
+        if (groupLayout == null)
+            groupLayout = group.AddComponent<LayoutElement>();
+        groupLayout.preferredHeight = 50;
+        groupLayout.minHeight = 50;
     }
 
     /// <summary>
@@ -74,6 +166,7 @@ public class LoginController : MonoBehaviour
     private void OnToggleMode()
     {
         isRegisterMode = !isRegisterMode;
+        confirmPasswordGroup.SetActive(isRegisterMode);
         usernameGroup.SetActive(isRegisterMode);
         signInButton.gameObject.SetActive(!isRegisterMode);
         signUpButton.gameObject.SetActive(isRegisterMode);
@@ -125,11 +218,18 @@ public class LoginController : MonoBehaviour
     {
         string email = emailField.text.Trim();
         string password = passwordField.text;
+        string confirmPassword = confirmPasswordField.text;
         string username = usernameField.text.Trim();
 
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
         {
             ShowError("Please enter email and password.");
+            return;
+        }
+
+        if (password != confirmPassword)
+        {
+            ShowError("Passwords do not match.");
             return;
         }
 
