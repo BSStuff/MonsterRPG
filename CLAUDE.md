@@ -1,10 +1,10 @@
-# Monster Survival RPG - CLAUDE.md
+# ElementsRPG - CLAUDE.md
 
 ## Project Overview
-- **Project Name**: Monster Survival RPG
-- **Description**: Hybrid Active + Idle Monster Survival RPG — auto-combat survival, monster collection/taming, persistent skill progression, strategy AI customization, life skills economy, convenience-based monetization. Unity WebGL (Phase 1), mobile (Phase 2). Python backend for game services.
-- **Tech Stack**: Unity/C# (game client), Python 3.11 + UV (backend services), WebGL target
-- **Last Updated**: 2026-03-04
+- **Project Name**: ElementsRPG (formerly Monster Survival RPG)
+- **Description**: Hybrid Active + Idle ElementsRPG — auto-combat survival, monster collection/taming, persistent skill progression, strategy AI customization, life skills economy, convenience-based monetization. Unity WebGL (Phase 1), mobile (Phase 2). Python backend for game services.
+- **Tech Stack**: Unity/C# (game client), Python 3.11 + UV (backend services), FastAPI + uvicorn (API framework), SQLAlchemy async + asyncpg (ORM), Supabase (Auth + PostgreSQL), Render (backend hosting), Vercel (WebGL hosting), GitHub Actions (CI/CD)
+- **Last Updated**: 2026-03-05
 
 ---
 
@@ -162,54 +162,38 @@ Loop:
 Follow strict vertical slice architecture with tests next to code:
 
 ```
-src/monster_rpg/
+src/elements_rpg/
     __init__.py
     main.py
     config.py
-    tests/
-        test_main.py
+    player.py
+    save_load.py
     conftest.py
 
-    # Core game systems
+    api/                 # FastAPI application layer
+        app.py           # App factory (CORS, error handlers, routers)
+        auth.py          # Supabase JWT verification
+        config.py        # pydantic-settings (env vars)
+        schemas.py       # Shared API schemas
+        dependencies.py  # DI: db session, current user, services
+        routers/         # Domain routers (13 routers, 65+ endpoints)
+        tests/           # API integration + E2E tests
+
+    db/                  # SQLAlchemy models + session management
+        engine.py        # Async engine factory
+        session.py       # Async session dependency
+        base.py          # Declarative base
+        converters.py    # Pydantic <-> SQLAlchemy mapping
+        models/          # Database models
+
+    services/            # Business logic layer (bridges routers <-> game logic)
+
+    # Core game systems (vertical slices with co-located tests)
     combat/
-        __init__.py
-        manager.py
-        damage_calc.py
-        tests/
-            test_manager.py
-            test_damage_calc.py
-
     monsters/
-        __init__.py
-        models.py
-        taming.py
-        tests/
-            test_models.py
-            test_taming.py
-
     idle/
-        __init__.py
-        tracker.py
-        offline_gains.py
-        tests/
-            test_tracker.py
-            test_offline_gains.py
-
     economy/
-        __init__.py
-        manager.py
-        crafting.py
-        tests/
-            test_manager.py
-            test_crafting.py
-
     skills/
-        __init__.py
-        progression.py
-        strategy_ai.py
-        tests/
-            test_progression.py
-            test_strategy_ai.py
 ```
 
 ---
@@ -309,6 +293,7 @@ This project may have hooks that auto-format code after writes. If a tool call b
 | 2026-03-04 | Phase 3 Economy & Idle — Idle tracking, Life Skills, Action Queue, Economy Manager | src/monster_rpg/idle/*, src/monster_rpg/economy/*, README.md, CLAUDE.md | 441 tests passing, 99% coverage, all review issues resolved |
 | 2026-03-04 | Phase 4 Team & Areas — team system, 2 MVP areas, 12 monsters, 28 skills | src/monster_rpg/monsters/team.py, src/monster_rpg/monsters/bestiary.py, src/monster_rpg/monsters/skill_catalog*.py, src/monster_rpg/economy/areas.py | 757 tests passing, 99% coverage, all review issues resolved |
 | 2026-03-04 | Phase 5 Monetization & Polish — gems, ads, subscriptions, save/load | src/monster_rpg/economy/premium.py, src/monster_rpg/economy/reward_ads.py, src/monster_rpg/economy/subscription.py, src/monster_rpg/save_load.py, tests | 884 tests passing, 99% coverage, all phases complete |
+| 2026-03-05 | Deployment & API Layer — all 7 phases complete | Renamed to ElementsRPG, added FastAPI (65+ endpoints across 13 routers), Supabase Auth + PostgreSQL, SQLAlchemy async ORM, Docker + Render deployment, Vercel WebGL config, GitHub Actions CI/CD, E2E tests, security hardening, server-authoritative economy, optimistic save locking | 1068 tests passing, ruff clean, all deployment phases complete |
 
 ---
 
@@ -350,6 +335,25 @@ This project may have hooks that auto-format code after writes. If a tool call b
 - [x] Implement Subscription tier logic
 - [x] Save/Load system (cloud-ready serialization)
 
+#### Phase 6 — Deployment & API Layer (2026-03-05)
+- [x] Rename project to ElementsRPG (package, imports, docs, config)
+- [x] FastAPI foundation (app factory, routers, CORS, error handling, health check)
+- [x] Supabase integration (Auth JWT, PostgreSQL, SQLAlchemy async, Alembic migrations)
+- [x] Core gameplay endpoints (save/load, monsters, teams, combat, taming)
+- [x] Economy & progression endpoints (economy, crafting, idle, skills, action queue)
+- [x] Monetization endpoints (premium store, subscriptions, reward ads)
+- [x] Docker + Render deployment (multi-stage build, render.yaml, start.sh)
+- [x] Vercel WebGL hosting config (vercel.json, cache headers)
+- [x] GitHub Actions CI/CD (lint, test, deploy workflows)
+- [x] E2E tests and security hardening (CORS, error sanitization, server-authoritative economy)
+- [x] Post-review fixes (optimistic save locking, shared dependencies, combat rewards)
+
+#### Pending — Next Steps
+- [ ] ElementsRPG element system redesign (dual-typing, 10+ elements, strengths/weaknesses)
+- [ ] Unity client integration (WebGL build, API client, auth flow)
+- [ ] Rate limiting implementation (slowapi/Redis for production)
+- [ ] CI PostgreSQL tests (GitHub Actions service container for integration tests)
+
 **Note for Claude Code CLI**:
 - Update this section as you work on tasks
 - Mark tasks complete using `[x]` when done
@@ -365,11 +369,15 @@ This project may have hooks that auto-format code after writes. If a tool call b
 
 ## Notes & Decisions
 
-- PRD specifies Unity/C# for game client (WebGL → Mobile), Python backend for game services
+- PRD specifies Unity/C# for game client (WebGL then Mobile), Python backend for game services
 - MVP scope: 2 areas, 12 monsters, 3 life skills, 1 action queue, 1 team
 - No PvP, guilds, or battle pass in Phase 1
 - Monetization is convenience-only, no direct stat purchases
 - Idle rate = 85% of best recorded BRPM
+- **Server-authoritative economy**: All gold/XP/gem transactions validated server-side; client-trusted earn/spend endpoints removed during Phase 7 review
+- **Supabase Auth over Stack Auth**: Handles email/password, OAuth, JWT issuance, token refresh -- eliminates custom auth bugs and security surface
+- **Hybrid storage pattern**: GameSaveData stored as atomic JSON column for save/load speed; key fields (player level, monster count, subscription status) duplicated to relational columns for queries/analytics
+- **Optimistic save locking**: Save endpoint accepts `expected_version` parameter; returns 409 Conflict on version mismatch to prevent concurrent save corruption
 
 ---
 

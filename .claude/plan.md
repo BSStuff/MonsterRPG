@@ -189,7 +189,7 @@ All modules live under `src/elements_rpg/` and need API endpoints:
 - [x] `implementation-agent` | `POST /skills/strategies/{strategy}/experience` -- grant strategy XP | complete
 
 - [x] `test-agent` | Write API tests for idle, action queue, skills, strategies endpoints -- 28 tests covering happy path, validation, auth, errors | complete
-- [ ] `review-agent` | Review Phase 4: verify economy transactions are atomic, action queue respects slot limits, offline gains cap at 8hr, skill XP formulas match game logic | pending
+- [x] `review-agent` | Review Phase 4: verify economy transactions are atomic, action queue respects slot limits, offline gains cap at 8hr, skill XP formulas match game logic | complete
 
 **Dependencies**: Phase 3 complete (core gameplay endpoints exist, save/load works).
 
@@ -220,7 +220,7 @@ All modules live under `src/elements_rpg/` and need API endpoints:
 - [x] `implementation-agent` | `GET /premium/ads/tracker` -- get ad watch history, cooldowns, remaining daily watches | complete
 
 - [x] `test-agent` | Write API tests for all Phase 5 endpoints -- 29 tests covering gem purchases, subscription activation/cancellation, ad cooldowns and daily limits, auth enforcement | complete
-- [ ] `review-agent` | Review Phase 5: verify no pay-to-win mechanics, subscription benefits match tiers, ad cooldowns enforced server-side, gem transactions atomic | pending
+- [x] `review-agent` | Review Phase 5: verify no pay-to-win mechanics, subscription benefits match tiers, ad cooldowns enforced server-side, gem transactions atomic | complete
 
 **Dependencies**: Phase 4 complete (economy system works for gem/gold transactions).
 
@@ -446,7 +446,9 @@ scripts/
 | 2026-03-05 | 4 | Idle, action queue, skills, strategy endpoints | idle_service.py (8 functions), skills_service.py (5 functions), idle.py router (8 endpoints), skills.py router (5 endpoints), test_idle.py (15 tests), test_skills.py (13 tests) — 1027 total passing, ruff clean |
 | 2026-03-05 | 5 | Premium store, subscriptions, reward ads endpoints | premium_service.py (11 functions across 3 domains), premium.py router (11 endpoints: 3 public, 8 authenticated), test_premium.py (29 tests) — 1056 total passing, ruff clean |
 | 2026-03-05 | 6 | Docker, Render, Vercel, GitHub Actions deployment config | Dockerfile (Python 3.11 slim, UV, non-root user), .dockerignore, render.yaml (IaC with env vars), vercel.json (Unity WebGL headers), .github/workflows/ci.yml (lint+test+deploy), scripts/start.sh (migrations+uvicorn), .gitignore updated — 1056 tests pass, ruff clean |
-| 2026-03-05 | 7 | E2E tests, security hardening, README deployment docs | test_e2e.py (21 tests, full player journey + cross-cutting), app.py (CORS hardened, rate limiting notes), routers/auth.py (error sanitization), health.py (tag fix), README.md (deployment docs) — 1077 tests pass, ruff clean, all phases complete |
+| 2026-03-05 | 7 | E2E tests, security hardening, README deployment docs | test_e2e.py (21 tests, full player journey + cross-cutting), app.py (CORS hardened, rate limiting notes), routers/auth.py (error sanitization), health.py (tag fix), README.md (deployment docs) -- 1077 tests pass, ruff clean, all phases complete |
+| 2026-03-05 | Review | Post-review fixes: server-authoritative economy, optimistic save locking, shared dependencies | Removed 7 client-trusted endpoints, added expected_version to saves, combat loads real monsters, 27 files changed -- 1068 tests passing, ruff clean |
+| 2026-03-05 | Docs | Final documentation update | CLAUDE.md, plan.md, README.md, MEMORY.md updated for deployment completion |
 
 ---
 
@@ -471,6 +473,31 @@ scripts/
 | Subscriptions | 5 | 5 |
 | Reward Ads | 3 | 5 |
 | **Total** | **73** | |
+
+---
+
+## Post-Review Fixes (2026-03-05)
+
+Resolved 3 critical blockers and 9 high-priority issues from PR review:
+
+### Critical Blockers (Fixed)
+1. **Empty JWT secret allows forgery** -- Added validation in `auth.py` to reject empty/missing `supabase_jwt_secret` before attempting JWT decode.
+2. **Server-authoritative economy** -- Removed all client-trusted endpoints (`POST /economy/gold/earn`, `POST /economy/gold/spend`, `POST /monsters/{id}/xp`, `POST /monsters/{id}/bond`, `POST /skills/{id}/experience`, `POST /skills/strategies/{id}/experience`, `POST /crafting/life-skills/{id}/experience`). Gold/XP now only awarded through validated server-side actions (combat finish, crafting).
+3. **Save version race condition** -- Added `expected_version` parameter to `SaveRequest` for optimistic locking. Returns 409 Conflict when version mismatch detected.
+
+### High-Priority Fixes
+4. **Shared resolve_player_id dependency** -- Extracted to `api/dependencies.py`, replacing 8 duplicate implementations across routers.
+5. **Combat placeholder replaced** -- Start combat now loads player's actual monsters from DB via `monster_service.get_owned_monsters`, with fallback team for new players.
+6. **Combat rewards server-authoritative** -- Finish combat now persists gold rewards via `economy_service.earn_gold`.
+7. **Session TTL cleanup** -- Added 30-minute TTL to combat sessions with automatic stale session cleanup.
+8. **CORS origins restrictive** -- Changed from `["http://localhost:*"]` to explicit `["http://localhost:3000", "http://localhost:8080"]`.
+9. **Docs hidden in production** -- `docs_url`/`redoc_url` only enabled when `debug=True`.
+10. **Error handler hardened** -- ValueError handler logs actual error but returns generic "Invalid request" to clients.
+11. **Startup validation** -- Added `validate_required_for_production()` checking required settings on startup.
+12. **Session factory cached** -- Added `@lru_cache` to `get_session_factory`.
+13. **Auth registration atomicity** -- Wrapped `create_player` in try/except for graceful failure after Supabase user creation.
+
+**Result**: 27 files changed, 676 insertions, 1030 deletions. 1068 tests passing, ruff clean.
 
 ---
 
