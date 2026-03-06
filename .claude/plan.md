@@ -129,10 +129,10 @@ All modules live under `src/elements_rpg/` and need API endpoints:
 - [ ] `implementation-agent` | `GET /combat/log` -- retrieve recent combat logs for player | pending
 
 #### Taming
-- [ ] `implementation-agent` | Create taming service: `src/elements_rpg/services/taming_service.py` -- wraps TamingTracker with persistence | pending
-- [ ] `implementation-agent` | `POST /taming/calculate` -- calculate taming chance for a species (base rate + food bonus + skill modifier + pity) | pending
-- [ ] `implementation-agent` | `POST /taming/attempt` -- attempt to tame a monster, return success/fail + pity state | pending
-- [ ] `implementation-agent` | `GET /taming/tracker` -- get current pity counters for all species | pending
+- [x] `implementation-agent` | Create taming service: `src/elements_rpg/services/taming_service.py` -- wraps TamingTracker with persistence | complete
+- [x] `implementation-agent` | `POST /taming/calculate` -- calculate taming chance for a species (base rate + food bonus + skill modifier + pity) | complete
+- [x] `implementation-agent` | `POST /taming/attempt` -- attempt to tame a monster, return success/fail + pity state | complete
+- [x] `implementation-agent` | `GET /taming/tracker` -- get current pity counters for all species | complete
 
 - [ ] `test-agent` | Write API tests for all Phase 3 endpoints (save/load, monsters, teams, combat, taming) -- happy path + error cases | pending
 - [ ] `review-agent` | Review Phase 3: verify all endpoints function correctly, auth required, proper error responses, save/load roundtrip integrity | pending
@@ -454,6 +454,7 @@ scripts/
 | 2026-03-05 | 3 | Save/Load service + endpoints | save_service.py (save/load/version/create_fresh), saves router (POST /, GET /, POST /new, GET /version) with auth, 902 tests pass, ruff clean |
 | 2026-03-05 | 3 | Monster service + endpoints | monster_service.py (bestiary, owned, xp, bond, skills), monsters router (7 endpoints: 2 public bestiary, 5 authenticated CRUD/mutation), 902 tests pass, ruff clean |
 | 2026-03-05 | 3 | Team service + endpoints | team_service.py (CRUD, reorder, assign_roles with ownership validation), teams router (6 endpoints: list, create, update, delete, reorder, roles), 902 tests pass, ruff clean |
+| 2026-03-05 | 3 | Taming service + endpoints | taming_service.py (calculate_chance, attempt_tame_monster, get_tracker with game state persistence), taming router (3 endpoints: POST /calculate, POST /attempt, GET /tracker) with auth, 902 tests pass, ruff clean |
 
 ---
 
