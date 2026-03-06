@@ -122,11 +122,11 @@ All modules live under `src/elements_rpg/` and need API endpoints:
 - [x] `implementation-agent` | `PUT /teams/{team_id}/roles` -- assign roles to team members | complete
 
 #### Combat
-- [ ] `implementation-agent` | Create combat service: `src/elements_rpg/services/combat_service.py` -- wraps CombatManager with state persistence | pending
-- [ ] `implementation-agent` | `POST /combat/start` -- initiate combat in current area with active team, return initial state | pending
-- [ ] `implementation-agent` | `POST /combat/round` -- process one combat round, return results (damage dealt, HP changes, skills used) | pending
-- [ ] `implementation-agent` | `POST /combat/finish` -- end combat, calculate rewards (XP, drops, gold), update player state | pending
-- [ ] `implementation-agent` | `GET /combat/log` -- retrieve recent combat logs for player | pending
+- [x] `implementation-agent` | Create combat service: `src/elements_rpg/services/combat_service.py` -- wraps CombatManager with in-memory session management | complete
+- [x] `implementation-agent` | `POST /combat/start` -- initiate combat with enemy species list, return session_id + initial state | complete
+- [x] `implementation-agent` | `POST /combat/{session_id}/round` -- process one combat round, return results (damage dealt, HP changes, fainted monsters) | complete
+- [x] `implementation-agent` | `POST /combat/{session_id}/finish` -- end combat, return final results + full combat log | complete
+- [x] `implementation-agent` | `GET /combat/{session_id}` + `GET /combat/{session_id}/log` -- retrieve combat state and log | complete
 
 #### Taming
 - [x] `implementation-agent` | Create taming service: `src/elements_rpg/services/taming_service.py` -- wraps TamingTracker with persistence | complete
@@ -455,6 +455,7 @@ scripts/
 | 2026-03-05 | 3 | Monster service + endpoints | monster_service.py (bestiary, owned, xp, bond, skills), monsters router (7 endpoints: 2 public bestiary, 5 authenticated CRUD/mutation), 902 tests pass, ruff clean |
 | 2026-03-05 | 3 | Team service + endpoints | team_service.py (CRUD, reorder, assign_roles with ownership validation), teams router (6 endpoints: list, create, update, delete, reorder, roles), 902 tests pass, ruff clean |
 | 2026-03-05 | 3 | Taming service + endpoints | taming_service.py (calculate_chance, attempt_tame_monster, get_tracker with game state persistence), taming router (3 endpoints: POST /calculate, POST /attempt, GET /tracker) with auth, 902 tests pass, ruff clean |
+| 2026-03-05 | 3 | Combat service + endpoints | combat_service.py (in-memory session management, start/round/finish/state/log), combat router (5 endpoints: POST start, POST round, POST finish, GET state, GET log) with auth + ownership validation, 943 tests pass, ruff clean |
 
 ---
 
