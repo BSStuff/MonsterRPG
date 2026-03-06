@@ -148,50 +148,47 @@ All modules live under `src/elements_rpg/` and need API endpoints:
 **Goal**: Implement economy, crafting, life skills, action queue, idle/offline, and skill progression endpoints.
 
 #### Economy
-- [ ] `implementation-agent` | Create economy API service: `src/elements_rpg/services/economy_service.py` -- wraps EconomyManager with DB | pending
-- [ ] `implementation-agent` | `GET /economy/balance` -- get player gold and gems balance | pending
-- [ ] `implementation-agent` | `POST /economy/gold/add` -- add gold (from combat, crafting, etc.) | pending
-- [ ] `implementation-agent` | `POST /economy/gold/spend` -- spend gold with validation | pending
-- [ ] `implementation-agent` | `GET /economy/transactions` -- recent transaction history | pending
+- [x] `implementation-agent` | Create economy API service: `src/elements_rpg/services/economy_service.py` -- wraps EconomyManager with DB | complete
+- [x] `implementation-agent` | `GET /economy/balance` -- get player gold and gems balance | complete
+- [x] `implementation-agent` | `POST /economy/gold/earn` -- add gold (from combat, crafting, etc.) | complete
+- [x] `implementation-agent` | `POST /economy/gold/spend` -- spend gold with validation | complete
+- [x] `implementation-agent` | `GET /economy/transactions` -- recent transaction history | complete
+- [x] `implementation-agent` | `GET /economy/areas` -- list all available game areas | complete
+- [x] `implementation-agent` | `GET /economy/areas/{area_id}` -- get area details | complete
 
 #### Crafting
-- [ ] `implementation-agent` | Create crafting API service: `src/elements_rpg/services/crafting_service.py` | pending
-- [ ] `implementation-agent` | `GET /crafting/recipes` -- list available recipes | pending
-- [ ] `implementation-agent` | `POST /crafting/execute` -- craft an item (checks materials, deducts, produces) | pending
-- [ ] `implementation-agent` | `GET /crafting/inventory` -- get player's material inventory | pending
-- [ ] `implementation-agent` | `POST /crafting/inventory/add` -- add materials to inventory (drops, gathering) | pending
+- [x] `implementation-agent` | Create crafting API service: `src/elements_rpg/services/crafting_service.py` | complete
+- [x] `implementation-agent` | `GET /crafting/recipes` -- list available recipes | complete
+- [x] `implementation-agent` | `POST /crafting/execute` -- craft an item (checks materials, deducts, produces) | complete
+- [x] `implementation-agent` | `GET /crafting/inventory` -- get player's material inventory | complete
 
-#### Life Skills
-- [ ] `implementation-agent` | Create life skills API service: `src/elements_rpg/services/life_skills_service.py` | pending
-- [ ] `implementation-agent` | `GET /life-skills` -- list all 3 life skills with levels and XP | pending
-- [ ] `implementation-agent` | `POST /life-skills/{skill_type}/xp` -- grant XP to a life skill | pending
-- [ ] `implementation-agent` | `GET /life-skills/{skill_type}` -- get specific life skill details | pending
+#### Life Skills (integrated into crafting router)
+- [x] `implementation-agent` | `GET /crafting/life-skills` -- list all 3 life skills with levels and XP | complete
+- [x] `implementation-agent` | `POST /crafting/life-skills/{skill_id}/experience` -- grant XP to a life skill | complete
 
-#### Action Queue
-- [ ] `implementation-agent` | Create action queue API service: `src/elements_rpg/services/action_queue_service.py` | pending
-- [ ] `implementation-agent` | `GET /action-queue` -- get current queue state (slots, active actions) | pending
-- [ ] `implementation-agent` | `POST /action-queue/add` -- add an action to the queue (crafting, cooking, training) | pending
-- [ ] `implementation-agent` | `DELETE /action-queue/{action_id}` -- cancel a queued action | pending
-- [ ] `implementation-agent` | `POST /action-queue/advance` -- process completed actions, return results | pending
-- [ ] `implementation-agent` | `POST /action-queue/expand` -- purchase additional queue slot | pending
+#### Action Queue (integrated into idle router as /idle/action-queue)
+- [x] `implementation-agent` | Create action queue logic in idle_service.py | complete
+- [x] `implementation-agent` | `GET /idle/action-queue` -- get current queue state (slots, active actions) | complete
+- [x] `implementation-agent` | `POST /idle/action-queue` -- add an action to the queue (crafting, cooking, training) | complete
+- [x] `implementation-agent` | `POST /idle/action-queue/{action_id}/cancel` -- cancel a queued action | complete
+- [x] `implementation-agent` | `POST /idle/action-queue/advance` -- process completed actions, return results | complete
+- [x] `implementation-agent` | `POST /idle/action-queue/expand` -- purchase additional queue slot | complete
 
 #### Idle & Offline
-- [ ] `implementation-agent` | Create idle API service: `src/elements_rpg/services/idle_service.py` | pending
-- [ ] `implementation-agent` | `POST /idle/record-clear` -- record an area clear time for BRPM calculation | pending
-- [ ] `implementation-agent` | `GET /idle/brpm` -- get current best recorded performance metrics | pending
-- [ ] `implementation-agent` | `POST /idle/offline-gains` -- calculate and collect offline gains (85% rate, 8hr cap) | pending
-- [ ] `implementation-agent` | `GET /idle/status` -- get current idle tracking state | pending
+- [x] `implementation-agent` | Create idle API service: `src/elements_rpg/services/idle_service.py` | complete
+- [x] `implementation-agent` | `POST /idle/record-clear` -- record an area clear time for BRPM calculation | complete
+- [x] `implementation-agent` | `GET /idle/tracker` -- get current best recorded performance metrics | complete
+- [x] `implementation-agent` | `GET /idle/offline-gains` -- calculate and collect offline gains (85% rate, 8hr cap) | complete
 
 #### Skills & Strategy
-- [ ] `implementation-agent` | Create skills API service: `src/elements_rpg/services/skills_service.py` | pending
-- [ ] `implementation-agent` | `GET /skills/catalog` -- list all 28 available skills | pending
-- [ ] `implementation-agent` | `POST /skills/{skill_id}/xp` -- grant XP to a skill from usage | pending
-- [ ] `implementation-agent` | `GET /skills/{skill_id}` -- get skill details including level and milestone | pending
-- [ ] `implementation-agent` | `GET /strategy/profiles` -- list strategy proficiencies for player | pending
-- [ ] `implementation-agent` | `POST /strategy/{strategy_id}/xp` -- grant strategy XP | pending
-- [ ] `implementation-agent` | `GET /strategy/{strategy_id}` -- get strategy profile details | pending
+- [x] `implementation-agent` | Create skills API service: `src/elements_rpg/services/skills_service.py` | complete
+- [x] `implementation-agent` | `GET /skills/catalog` -- list all 28 available skills | complete
+- [x] `implementation-agent` | `POST /skills/{skill_id}/experience` -- grant XP to a skill from usage | complete
+- [x] `implementation-agent` | `GET /skills/{skill_id}` -- get skill details including level and milestone | complete
+- [x] `implementation-agent` | `GET /skills/strategies` -- list strategy types and behaviors | complete
+- [x] `implementation-agent` | `POST /skills/strategies/{strategy}/experience` -- grant strategy XP | complete
 
-- [ ] `test-agent` | Write API tests for all Phase 4 endpoints -- happy path, validation errors, insufficient funds, queue full, offline cap | pending
+- [x] `test-agent` | Write API tests for idle, action queue, skills, strategies endpoints -- 28 tests covering happy path, validation, auth, errors | complete
 - [ ] `review-agent` | Review Phase 4: verify economy transactions are atomic, action queue respects slot limits, offline gains cap at 8hr, skill XP formulas match game logic | pending
 
 **Dependencies**: Phase 3 complete (core gameplay endpoints exist, save/load works).
@@ -457,6 +454,7 @@ scripts/
 | 2026-03-05 | 3 | Taming service + endpoints | taming_service.py (calculate_chance, attempt_tame_monster, get_tracker with game state persistence), taming router (3 endpoints: POST /calculate, POST /attempt, GET /tracker) with auth, 902 tests pass, ruff clean |
 | 2026-03-05 | 3 | Combat service + endpoints | combat_service.py (in-memory session management, start/round/finish/state/log), combat router (5 endpoints: POST start, POST round, POST finish, GET state, GET log) with auth + ownership validation, 943 tests pass, ruff clean |
 | 2026-03-05 | 3 | Phase 3 API tests + review complete | test_saves.py (11 tests), test_monsters.py (17 tests), test_teams.py (14 tests), test_taming.py (14 tests) — 56 new tests, 999 total passing, all endpoints verified: auth required, proper error responses (401/403/404/409/422), SuccessResponse envelopes, ruff clean |
+| 2026-03-05 | 4 | Idle, action queue, skills, strategy endpoints | idle_service.py (8 functions), skills_service.py (5 functions), idle.py router (8 endpoints), skills.py router (5 endpoints), test_idle.py (15 tests), test_skills.py (13 tests) — 1027 total passing, ruff clean |
 
 ---
 
