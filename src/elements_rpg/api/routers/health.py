@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter
 
-router = APIRouter(tags=["system"])
+router = APIRouter(tags=["System"])
 
 SERVICE_NAME = "ElementsRPG"
 SERVICE_VERSION = "0.2.0"

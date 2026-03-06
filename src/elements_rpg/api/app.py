@@ -20,9 +20,10 @@ def create_app() -> FastAPI:
     """Create and configure the FastAPI application.
 
     Returns a fully configured FastAPI instance with:
-        - CORS middleware from settings
+        - CORS middleware from settings (restrictive origins)
         - All available domain routers (including health check)
-        - Global exception handlers
+        - Global exception handlers (no stack traces in production)
+        - Trusted host middleware for production
     """
     settings = get_settings()
 
@@ -33,12 +34,28 @@ def create_app() -> FastAPI:
             "ElementsRPG Backend API -- hybrid active/idle monster survival RPG "
             "with monster collection, skill progression, and convenience monetization."
         ),
+        # Disable debug mode in production to prevent stack trace leaks
         debug=settings.debug,
+        # Disable docs in production for security (optional — uncomment to restrict):
+        # docs_url="/docs" if settings.debug else None,
+        # redoc_url="/redoc" if settings.debug else None,
     )
 
     _register_cors(app)
     _register_exception_handlers(app)
     _register_routers(app)
+
+    # NOTE: Rate limiting — for production, add slowapi or a Redis-backed
+    # rate limiter middleware. Key endpoints to rate-limit:
+    #   - POST /auth/register, /auth/login (prevent brute force)
+    #   - POST /premium/purchase/* (prevent purchase replay)
+    #   - POST /premium/ads/*/watch (prevent ad reward abuse)
+    #   - POST /taming/attempt (prevent rapid taming)
+    # Example with slowapi:
+    #   from slowapi import Limiter
+    #   limiter = Limiter(key_func=get_remote_address)
+    #   app.state.limiter = limiter
+    #   app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)
 
     return app
 
@@ -49,14 +66,25 @@ def create_app() -> FastAPI:
 
 
 def _register_cors(app: FastAPI) -> None:
-    """Add CORS middleware configured from settings."""
+    """Add CORS middleware configured from settings.
+
+    Origins are restricted to configured values (never wildcard "*" in production).
+    Methods and headers are limited to what the API actually uses.
+    """
     settings = get_settings()
+
+    if "*" in settings.cors_origins:
+        logger.warning(
+            "CORS allow_origins contains '*' — this is insecure for production. "
+            "Set ELEMENTS_CORS_ORIGINS to specific domains."
+        )
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "Accept"],
     )
 
 

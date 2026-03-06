@@ -100,8 +100,20 @@ async def _supabase_post(
 
     if resp.status_code >= 400:
         content_type = resp.headers.get("content-type", "")
-        detail = resp.json() if content_type.startswith("application/json") else resp.text
-        logger.warning("Supabase auth error (%s %s): %s", resp.status_code, path, detail)
+        raw_detail = resp.json() if content_type.startswith("application/json") else resp.text
+        # Log full error server-side for debugging
+        logger.warning("Supabase auth error (%s %s): %s", resp.status_code, path, raw_detail)
+        # Sanitize error detail — only forward safe, user-facing messages.
+        # Never expose internal Supabase error structures to clients.
+        safe_messages: dict[int, str] = {
+            400: "Invalid request. Please check your input.",
+            401: "Invalid credentials.",
+            403: "Access denied.",
+            409: "An account with this email already exists.",
+            422: "Invalid request format.",
+            429: "Too many requests. Please try again later.",
+        }
+        detail = safe_messages.get(resp.status_code, "Authentication service error.")
         raise HTTPException(
             status_code=resp.status_code,
             detail=detail,
