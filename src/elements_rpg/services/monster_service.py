@@ -292,9 +292,13 @@ def _enrich_monster_row(row: MonsterDB) -> dict[str, Any]:
         "equipped_skill_ids": row.equipped_skill_ids or [],
     }
     if species is not None:
+        types_list = [species.primary_type.value]
+        if species.secondary_type is not None:
+            types_list.append(species.secondary_type.value)
         data["species"] = {
             "name": species.name,
-            "element": species.element.value,
+            "types": types_list,
+            "element": species.element.value,  # backward compat (primary type)
             "rarity": species.rarity.value,
             "base_stats": species.base_stats.model_dump(),
             "passive_trait": species.passive_trait,

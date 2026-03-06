@@ -21,6 +21,7 @@ from elements_rpg.player import Player
 from elements_rpg.save_load import (
     SAVE_FORMAT_VERSION,
     GameSaveData,
+    _migrate_v1_to_v2,
     create_new_save,
     deserialize_save,
     load_from_dict,
@@ -117,7 +118,7 @@ class TestGameSaveDataConstruction:
         """Version field should default to SAVE_FORMAT_VERSION."""
         save = _make_save()
         assert save.version == SAVE_FORMAT_VERSION
-        assert save.version == 1
+        assert save.version == 2
 
     def test_custom_version(self) -> None:
         """Version can be set explicitly."""
@@ -542,3 +543,193 @@ class TestEdgeCases:
         data = save_to_dict(save)
         restored_dict = load_from_dict(data)
         assert save.model_dump() == restored_dict.model_dump()
+
+
+# ==========================================
+# V1 -> V2 migration tests
+# ==========================================
+
+
+def _make_v1_save_dict(**overrides: object) -> dict:
+    """Create a raw v1-format save dict with old element values."""
+    base: dict = {
+        "version": 1,
+        "player": {"player_id": "player_001", "username": "TestHero"},
+        "monsters": [],
+        "teams": [],
+        "inventory": {"items": {}},
+        "economy": {"gold": 0, "gems": 0, "transaction_log": []},
+        "idle_tracker": {"best_clear_times": {}, "best_monsters_per_clear": {}},
+        "taming_tracker": {"attempts_per_species": {}},
+        "action_queue": {"actions": [], "max_slots": 2},
+        "life_skills": [],
+        "subscription": {
+            "active_plan": None,
+            "start_timestamp": 0,
+            "end_timestamp": 0,
+            "auto_renew": False,
+        },
+        "ad_tracker": {
+            "watches_today": {},
+            "last_watch_time": {},
+            "watch_history": [],
+        },
+        "premium_purchases": {},
+        "timestamp": 0,
+    }
+    base.update(overrides)
+    return base
+
+
+def _make_v1_monster_dict(
+    monster_id: str = "mon_001",
+    species_id: str = "sp_earth_golem",
+    name: str = "Earth Golem",
+    element: str = "earth",
+    level: int = 5,
+) -> dict:
+    """Create a v1-format monster dict with old single `element` field."""
+    return {
+        "monster_id": monster_id,
+        "species": {
+            "species_id": species_id,
+            "name": name,
+            "element": element,
+            "rarity": "common",
+            "base_stats": {
+                "hp": 100,
+                "attack": 20,
+                "defense": 15,
+                "speed": 18,
+                "magic_attack": 10,
+                "magic_defense": 12,
+            },
+            "passive_trait": "Sturdy",
+            "passive_description": "Resists knockback",
+            "learnable_skill_ids": ["sk_tackle"],
+        },
+        "level": level,
+        "experience": 0,
+        "bond_level": 0,
+        "equipped_skill_ids": [],
+        "current_hp": 100,
+        "is_fainted": False,
+    }
+
+
+class TestV1ToV2Migration:
+    """Tests for v1 -> v2 save migration."""
+
+    def test_migrate_bumps_version_to_2(self) -> None:
+        """Migration should set version to 2."""
+        v1_data = _make_v1_save_dict()
+        result = _migrate_v1_to_v2(v1_data)
+        assert result["version"] == 2
+
+    def test_migrate_earth_to_grass(self) -> None:
+        """earth element should migrate to grass."""
+        monster = _make_v1_monster_dict(element="earth")
+        v1_data = _make_v1_save_dict(monsters=[monster])
+        result = _migrate_v1_to_v2(v1_data)
+        species = result["monsters"][0]["species"]
+        assert "types" in species
+        assert species["types"][0] == "grass"
+        assert species["types"][1] is None
+        assert "element" not in species
+
+    def test_migrate_neutral_to_dark(self) -> None:
+        """neutral element should migrate to dark."""
+        monster = _make_v1_monster_dict(
+            species_id="sp_shadow",
+            name="Shadow",
+            element="neutral",
+        )
+        v1_data = _make_v1_save_dict(monsters=[monster])
+        result = _migrate_v1_to_v2(v1_data)
+        species = result["monsters"][0]["species"]
+        assert species["types"][0] == "dark"
+        assert species["types"][1] is None
+
+    def test_migrate_fire_stays_fire(self) -> None:
+        """fire element should remain fire."""
+        monster = _make_v1_monster_dict(element="fire")
+        v1_data = _make_v1_save_dict(monsters=[monster])
+        result = _migrate_v1_to_v2(v1_data)
+        species = result["monsters"][0]["species"]
+        assert species["types"][0] == "fire"
+
+    def test_migrate_water_stays_water(self) -> None:
+        """water element should remain water."""
+        monster = _make_v1_monster_dict(element="water")
+        v1_data = _make_v1_save_dict(monsters=[monster])
+        result = _migrate_v1_to_v2(v1_data)
+        species = result["monsters"][0]["species"]
+        assert species["types"][0] == "water"
+
+    def test_migrate_wind_stays_wind(self) -> None:
+        """wind element should remain wind."""
+        monster = _make_v1_monster_dict(element="wind")
+        v1_data = _make_v1_save_dict(monsters=[monster])
+        result = _migrate_v1_to_v2(v1_data)
+        species = result["monsters"][0]["species"]
+        assert species["types"][0] == "wind"
+
+    def test_migrate_multiple_monsters(self) -> None:
+        """All monsters in the save should be migrated."""
+        monsters = [
+            _make_v1_monster_dict(monster_id="mon_001", element="earth", species_id="sp_1"),
+            _make_v1_monster_dict(monster_id="mon_002", element="neutral", species_id="sp_2"),
+            _make_v1_monster_dict(monster_id="mon_003", element="fire", species_id="sp_3"),
+        ]
+        v1_data = _make_v1_save_dict(monsters=monsters)
+        result = _migrate_v1_to_v2(v1_data)
+        assert result["monsters"][0]["species"]["types"][0] == "grass"
+        assert result["monsters"][1]["species"]["types"][0] == "dark"
+        assert result["monsters"][2]["species"]["types"][0] == "fire"
+
+    def test_migrate_no_monsters(self) -> None:
+        """Migration should handle saves with no monsters."""
+        v1_data = _make_v1_save_dict(monsters=[])
+        result = _migrate_v1_to_v2(v1_data)
+        assert result["version"] == 2
+        assert result["monsters"] == []
+
+    def test_v1_save_loads_via_deserialize(self) -> None:
+        """A v1 save JSON should load correctly through deserialize_save."""
+        monster = _make_v1_monster_dict(element="earth")
+        v1_data = _make_v1_save_dict(monsters=[monster])
+        json_str = json.dumps(v1_data)
+        restored = deserialize_save(json_str)
+        assert restored.version == 2
+        assert len(restored.monsters) == 1
+        assert restored.monsters[0].species.primary_type == Element.GRASS
+        assert restored.monsters[0].species.secondary_type is None
+
+    def test_v1_save_loads_via_load_from_dict(self) -> None:
+        """A v1 save dict should load correctly through load_from_dict."""
+        monster = _make_v1_monster_dict(element="neutral")
+        v1_data = _make_v1_save_dict(monsters=[monster])
+        restored = load_from_dict(v1_data)
+        assert restored.version == 2
+        assert restored.monsters[0].species.primary_type == Element.DARK
+
+    def test_v2_save_not_double_migrated(self) -> None:
+        """A v2 save should not be re-migrated."""
+        save = _make_save(
+            monsters=[_make_monster()],
+        )
+        json_str = serialize_save(save)
+        restored = deserialize_save(json_str)
+        assert restored.version == 2
+        assert restored.monsters[0].species.primary_type == Element.FIRE
+
+    def test_migrate_preserves_existing_types_field(self) -> None:
+        """If a v1 save somehow has types, remap old values in the tuple."""
+        monster_dict = _make_v1_monster_dict()
+        # Simulate having types with old element values
+        monster_dict["species"].pop("element", None)
+        monster_dict["species"]["types"] = ["earth", "neutral"]
+        v1_data = _make_v1_save_dict(monsters=[monster_dict])
+        result = _migrate_v1_to_v2(v1_data)
+        species = result["monsters"][0]["species"]
+        assert species["types"] == ["grass", "dark"]

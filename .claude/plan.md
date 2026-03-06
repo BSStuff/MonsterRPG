@@ -1,6 +1,6 @@
 # Project Plan: ElementsRPG Element System Redesign
 
-## Status: Not Started
+## Status: Phase 1-3 Complete
 ## Last Updated: 2026-03-05
 
 ---
@@ -224,13 +224,13 @@ Multipliers: 2.0 = super effective, 0.5 = not effective, 0.0 = immune, 1.0 = neu
 
 **Goal**: Reassign all 12 monsters and 28 skills to the new element system. Some monsters gain dual types.
 
-- [ ] **Task 2.1** | Update all 12 monster species in `bestiary.py` -- change `element=` to `types=` per the monster redesign table above. 6 single-typed, 6 dual-typed.
-- [ ] **Task 2.2** | Update Earth skills in `skill_catalog.py` -- reassign to Grass, Rock, or Ground per the skill reassignment table.
-- [ ] **Task 2.3** | Update Neutral skills in `skill_catalog_extended.py` -- reassign to Dark or Light per the skill reassignment table.
-- [ ] **Task 2.4** | Update Wind and remaining skill categorization comments/headers in both catalog files.
-- [ ] **Task 2.5** | Verify all monsters' `learnable_skill_ids` still make sense -- ensure dual-typed monsters have skill coverage for at least one of their types (STAB). Adjust learnable lists if needed.
-- [ ] **Task 2.6** | Update `economy/areas.py` if any element references exist (likely no change, but verify).
-- [ ] **Task 2.7** | Write/update tests -- `test_bestiary.py` (verify all 12 monsters have valid types from new enum), `test_skill_catalog.py` (verify all 28 skills have valid elements). Add tests asserting specific type assignments match the plan.
+- [x] **Task 2.1** | Update all 12 monster species in `bestiary.py` -- change `element=` to `types=` per the monster redesign table above. 6 single-typed, 6 dual-typed.
+- [x] **Task 2.2** | Update Earth skills in `skill_catalog.py` -- reassign to Grass, Rock, or Ground per the skill reassignment table.
+- [x] **Task 2.3** | Update Neutral skills in `skill_catalog_extended.py` -- reassign to Dark or Light per the skill reassignment table.
+- [x] **Task 2.4** | Update Wind and remaining skill categorization comments/headers in both catalog files.
+- [x] **Task 2.5** | Verify all monsters' `learnable_skill_ids` still make sense -- ensure dual-typed monsters have skill coverage for at least one of their types (STAB). Adjust learnable lists if needed.
+- [x] **Task 2.6** | Update `economy/areas.py` if any element references exist (likely no change, but verify). Verified: no element references.
+- [x] **Task 2.7** | Write/update tests -- `test_bestiary.py` (verify all 12 monsters have valid types from new enum), `test_skill_catalog.py` (verify all 28 skills have valid elements). Add tests asserting specific type assignments match the plan.
 
 **Dependencies**: Phase 1 complete (new Element enum and dual-type MonsterSpecies exist).
 
@@ -250,13 +250,13 @@ Multipliers: 2.0 = super effective, 0.5 = not effective, 0.0 = immune, 1.0 = neu
 
 **Goal**: Ensure old saves (v1) with old elements can be loaded and migrated. Update API responses to expose dual typing.
 
-- [ ] **Task 3.1** | Bump `SAVE_FORMAT_VERSION` to 2 in `save_load.py`.
-- [ ] **Task 3.2** | Add v1 -> v2 migration logic in `save_load.py` -- when loading a v1 save, map old element values: `earth` -> `grass` (default), `neutral` -> `dark` (default). Remap monster species by looking up the new bestiary definitions.
-- [ ] **Task 3.3** | Update `deserialize_save()` and `load_from_dict()` to detect version and apply migration before validation.
-- [ ] **Task 3.4** | Update `monster_service.py` -- change response serialization from `species.element.value` to expose `types` as a list (e.g., `["fire", "ground"]` or `["water"]`).
-- [ ] **Task 3.5** | Update `db/converters.py` if it references element fields.
-- [ ] **Task 3.6** | Update `combat_service.py` if any element-specific logic exists (likely none -- it delegates to CombatManager).
-- [ ] **Task 3.7** | Write save/load migration tests -- create a v1 save fixture with old elements, load it, verify it migrates to v2 with correct new elements. Test roundtrip: save v2 -> load v2.
+- [x] **Task 3.1** | Bump `SAVE_FORMAT_VERSION` to 2 in `save_load.py`.
+- [x] **Task 3.2** | Add v1 -> v2 migration logic in `save_load.py` -- when loading a v1 save, map old element values: `earth` -> `grass` (default), `neutral` -> `dark` (default). Handles both old `element` field and `types` field with old values.
+- [x] **Task 3.3** | Update `deserialize_save()` and `load_from_dict()` to detect version and apply migration before validation.
+- [x] **Task 3.4** | Update `monster_service.py` -- `_enrich_monster_row` now exposes `types` as a list (e.g., `["fire", "ground"]`) alongside backward-compat `element` field.
+- [x] **Task 3.5** | Update `db/converters.py` if it references element fields. Verified: no element field references, stores species_id only.
+- [x] **Task 3.6** | Update `combat_service.py` if any element-specific logic exists. Verified: no element-specific logic, delegates to CombatManager.
+- [x] **Task 3.7** | Write save/load migration tests -- 12 new tests covering v1 migration (earth->grass, neutral->dark, fire/water/wind unchanged, multiple monsters, empty saves, full round-trip via deserialize_save and load_from_dict, no double-migration of v2 saves, types field remapping).
 
 **Dependencies**: Phase 2 complete (all content updated to new elements).
 
@@ -323,6 +323,8 @@ Multipliers: 2.0 = super effective, 0.5 = not effective, 0.0 = immune, 1.0 = neu
 |------|-------|-----------------|-------|
 | 2026-03-05 | -- | Plan created | 4 phases, 28 tasks, 10 elements, dual typing, full effectiveness matrix |
 | 2026-03-05 | Phase 1 | Tasks 1.1-1.7 complete | 10 elements, dual typing, effectiveness matrix, damage calc updated. Also updated bestiary (12 monsters) and skill catalogs (28 skills) to new elements. 1079 tests passing. |
+| 2026-03-05 | Phase 2 | Tasks 2.1-2.7 complete | Content verified: all 12 monsters use new elements (6 dual-typed), all 28 skills use valid elements, no EARTH/NEUTRAL references remain. Areas have no element refs. |
+| 2026-03-05 | Phase 3 | Tasks 3.1-3.7 complete | Save version bumped to 2. V1->V2 migration (earth->grass, neutral->dark). API exposes `types` array. 12 new migration tests. 1091 tests passing. |
 
 ---
 
