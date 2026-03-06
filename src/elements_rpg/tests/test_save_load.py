@@ -39,7 +39,7 @@ def _make_species(**overrides: object) -> MonsterSpecies:
     defaults: dict[str, object] = {
         "species_id": "sp_fire_wolf",
         "name": "Fire Wolf",
-        "element": Element.FIRE,
+        "types": (Element.FIRE, None),
         "rarity": Rarity.COMMON,
         "base_stats": StatBlock(
             hp=100, attack=20, defense=15, speed=18, magic_attack=10, magic_defense=12
@@ -167,7 +167,7 @@ class TestSerializationRoundTrip:
             species=_make_species(
                 species_id="sp_water_serpent",
                 name="Water Serpent",
-                element=Element.WATER,
+                types=(Element.WATER, None),
                 rarity=Rarity.RARE,
             ),
             current_hp=80,

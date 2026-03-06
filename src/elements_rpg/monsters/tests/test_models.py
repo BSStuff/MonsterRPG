@@ -33,7 +33,7 @@ def _make_species(**overrides: object) -> MonsterSpecies:
     defaults: dict[str, object] = {
         "species_id": "sp_flame_wolf",
         "name": "Flame Wolf",
-        "element": Element.FIRE,
+        "types": (Element.FIRE, None),
         "rarity": Rarity.COMMON,
         "base_stats": _make_stat_block(),
         "passive_trait": "Blaze",
@@ -61,19 +61,24 @@ class TestElement:
     """Tests for Element enum."""
 
     def test_all_elements(self) -> None:
-        """All five elements should be defined."""
+        """All ten elements should be defined."""
         assert set(Element) == {
             Element.FIRE,
             Element.WATER,
-            Element.EARTH,
+            Element.GRASS,
+            Element.ELECTRIC,
             Element.WIND,
-            Element.NEUTRAL,
+            Element.GROUND,
+            Element.ROCK,
+            Element.DARK,
+            Element.LIGHT,
+            Element.ICE,
         }
 
     def test_element_values(self) -> None:
         """Element values should be lowercase strings."""
         assert Element.FIRE.value == "fire"
-        assert Element.NEUTRAL.value == "neutral"
+        assert Element.DARK.value == "dark"
 
 
 # --- Rarity enum ---

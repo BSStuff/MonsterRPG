@@ -1,4 +1,4 @@
-"""Extended skill catalog — Wind and Neutral skills for the MVP bestiary."""
+"""Extended skill catalog — Wind, Dark, and Light skills for the MVP bestiary."""
 
 from elements_rpg.monsters.models import Element
 from elements_rpg.skills.progression import Skill, SkillMilestone, SkillType
@@ -88,14 +88,14 @@ CYCLONE = Skill(
 )
 
 # ---------------------------------------------------------------------------
-# Neutral Skills
+# Dark Skills
 # ---------------------------------------------------------------------------
 
 SHADOW_BOLT = Skill(
     skill_id="skill_shadow_bolt",
     name="Shadow Bolt",
     skill_type=SkillType.ATTACK,
-    element=Element.NEUTRAL,
+    element=Element.DARK,
     power=55,
     accuracy=90,
     cooldown=3.0,
@@ -115,7 +115,7 @@ CONFUSE_DUST = Skill(
     skill_id="skill_confuse_dust",
     name="Confuse Dust",
     skill_type=SkillType.SPECIAL,
-    element=Element.NEUTRAL,
+    element=Element.DARK,
     power=25,
     accuracy=85,
     cooldown=5.0,
@@ -131,11 +131,15 @@ CONFUSE_DUST = Skill(
     ],
 )
 
+# ---------------------------------------------------------------------------
+# Light Skills
+# ---------------------------------------------------------------------------
+
 PRISMATIC_BEAM = Skill(
     skill_id="skill_prismatic_beam",
     name="Prismatic Beam",
     skill_type=SkillType.ATTACK,
-    element=Element.NEUTRAL,
+    element=Element.LIGHT,
     power=70,
     accuracy=80,
     cooldown=5.0,
@@ -155,7 +159,7 @@ AURA_PULSE = Skill(
     skill_id="skill_aura_pulse",
     name="Aura Pulse",
     skill_type=SkillType.SUPPORT,
-    element=Element.NEUTRAL,
+    element=Element.LIGHT,
     power=30,
     accuracy=100,
     cooldown=9.0,
@@ -175,7 +179,7 @@ LIFE_DRAIN = Skill(
     skill_id="skill_life_drain",
     name="Life Drain",
     skill_type=SkillType.SPECIAL,
-    element=Element.NEUTRAL,
+    element=Element.DARK,
     power=45,
     accuracy=85,
     cooldown=6.0,

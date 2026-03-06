@@ -15,7 +15,7 @@ def _make_species(**overrides: object) -> MonsterSpecies:
     defaults: dict[str, object] = {
         "species_id": "sp_test",
         "name": "TestMon",
-        "element": Element.NEUTRAL,
+        "types": (Element.DARK, None),
         "rarity": Rarity.COMMON,
         "base_stats": StatBlock(
             hp=100, attack=20, defense=15, speed=10, magic_attack=10, magic_defense=10

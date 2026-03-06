@@ -24,7 +24,7 @@ def species() -> MonsterSpecies:
     return MonsterSpecies(
         species_id="sp_wolf",
         name="Wolf",
-        element=Element.NEUTRAL,
+        types=(Element.DARK, None),
         rarity=Rarity.COMMON,
         base_stats=StatBlock(
             hp=100, attack=20, defense=15, speed=18, magic_attack=5, magic_defense=10

@@ -15,14 +15,14 @@ from elements_rpg.monsters.skill_catalog_extended import (
 from elements_rpg.skills.progression import Skill, SkillMilestone, SkillType
 
 # ---------------------------------------------------------------------------
-# Earth Skills
+# Grass Skills
 # ---------------------------------------------------------------------------
 
 VINE_WHIP = Skill(
     skill_id="skill_vine_whip",
     name="Vine Whip",
     skill_type=SkillType.ATTACK,
-    element=Element.EARTH,
+    element=Element.GRASS,
     power=45,
     accuracy=95,
     cooldown=2.0,
@@ -42,7 +42,7 @@ ROOT_BIND = Skill(
     skill_id="skill_root_bind",
     name="Root Bind",
     skill_type=SkillType.SPECIAL,
-    element=Element.EARTH,
+    element=Element.GRASS,
     power=30,
     accuracy=85,
     cooldown=5.0,
@@ -62,7 +62,7 @@ LEAF_SHIELD = Skill(
     skill_id="skill_leaf_shield",
     name="Leaf Shield",
     skill_type=SkillType.DEFENSE,
-    element=Element.EARTH,
+    element=Element.GRASS,
     power=0,
     accuracy=100,
     cooldown=6.0,
@@ -82,7 +82,7 @@ NATURE_HEAL = Skill(
     skill_id="skill_nature_heal",
     name="Nature Heal",
     skill_type=SkillType.SUPPORT,
-    element=Element.EARTH,
+    element=Element.GRASS,
     power=40,
     accuracy=100,
     cooldown=8.0,
@@ -102,7 +102,7 @@ ROCK_SLAM = Skill(
     skill_id="skill_rock_slam",
     name="Rock Slam",
     skill_type=SkillType.ATTACK,
-    element=Element.EARTH,
+    element=Element.ROCK,
     power=60,
     accuracy=85,
     cooldown=3.5,
@@ -122,7 +122,7 @@ STONE_WALL = Skill(
     skill_id="skill_stone_wall",
     name="Stone Wall",
     skill_type=SkillType.DEFENSE,
-    element=Element.EARTH,
+    element=Element.ROCK,
     power=0,
     accuracy=100,
     cooldown=7.0,
@@ -142,7 +142,7 @@ EARTHQUAKE = Skill(
     skill_id="skill_earthquake",
     name="Earthquake",
     skill_type=SkillType.ATTACK,
-    element=Element.EARTH,
+    element=Element.GROUND,
     power=80,
     accuracy=75,
     cooldown=6.0,
@@ -162,7 +162,7 @@ FORTIFY = Skill(
     skill_id="skill_fortify",
     name="Fortify",
     skill_type=SkillType.DEFENSE,
-    element=Element.EARTH,
+    element=Element.ROCK,
     power=0,
     accuracy=100,
     cooldown=10.0,
@@ -411,15 +411,17 @@ HYDRO_CANNON = Skill(
 # ---------------------------------------------------------------------------
 
 MVP_SKILLS: dict[str, Skill] = {
-    # Earth
+    # Grass
     VINE_WHIP.skill_id: VINE_WHIP,
     ROOT_BIND.skill_id: ROOT_BIND,
     LEAF_SHIELD.skill_id: LEAF_SHIELD,
     NATURE_HEAL.skill_id: NATURE_HEAL,
+    # Rock
     ROCK_SLAM.skill_id: ROCK_SLAM,
     STONE_WALL.skill_id: STONE_WALL,
-    EARTHQUAKE.skill_id: EARTHQUAKE,
     FORTIFY.skill_id: FORTIFY,
+    # Ground
+    EARTHQUAKE.skill_id: EARTHQUAKE,
     # Fire
     FLAME_BITE.skill_id: FLAME_BITE,
     FIRE_BLAST.skill_id: FIRE_BLAST,
@@ -438,10 +440,11 @@ MVP_SKILLS: dict[str, Skill] = {
     TAILWIND_BOOST.skill_id: TAILWIND_BOOST,
     SONIC_SCREECH.skill_id: SONIC_SCREECH,
     CYCLONE.skill_id: CYCLONE,
-    # Neutral
+    # Dark
     SHADOW_BOLT.skill_id: SHADOW_BOLT,
     CONFUSE_DUST.skill_id: CONFUSE_DUST,
+    LIFE_DRAIN.skill_id: LIFE_DRAIN,
+    # Light
     PRISMATIC_BEAM.skill_id: PRISMATIC_BEAM,
     AURA_PULSE.skill_id: AURA_PULSE,
-    LIFE_DRAIN.skill_id: LIFE_DRAIN,
 }

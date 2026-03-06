@@ -13,7 +13,7 @@ from elements_rpg.skills.progression import Skill, SkillType
 
 def _species(
     species_id: str = "sp_fire",
-    element: Element = Element.FIRE,
+    types: tuple[Element, Element | None] = (Element.FIRE, None),
     hp: int = 100,
     attack: int = 50,
     defense: int = 40,
@@ -24,7 +24,7 @@ def _species(
     return MonsterSpecies(
         species_id=species_id,
         name=f"Mon_{species_id}",
-        element=element,
+        types=types,
         rarity=Rarity.COMMON,
         base_stats=StatBlock(
             hp=hp,
@@ -41,7 +41,7 @@ def _species(
 
 def _monster(
     monster_id: str = "m1",
-    element: Element = Element.FIRE,
+    types: tuple[Element, Element | None] = (Element.FIRE, None),
     level: int = 10,
     current_hp: int = 100,
     speed: int = 30,
@@ -50,7 +50,7 @@ def _monster(
 ) -> Monster:
     return Monster(
         monster_id=monster_id,
-        species=_species(element=element, speed=speed),
+        species=_species(types=types, speed=speed),
         level=level,
         current_hp=current_hp,
         equipped_skill_ids=equipped_skill_ids or ["sk_1"],
@@ -62,7 +62,7 @@ def _skill(
     skill_id: str = "sk_1",
     name: str = "Slash",
     power: int = 60,
-    element: Element = Element.NEUTRAL,
+    element: Element = Element.FIRE,
 ) -> Skill:
     return Skill(
         skill_id=skill_id,

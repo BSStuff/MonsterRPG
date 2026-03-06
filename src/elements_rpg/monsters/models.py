@@ -8,13 +8,18 @@ from elements_rpg.config import MAX_EQUIPPED_SKILLS, MAX_MONSTER_LEVEL
 
 
 class Element(StrEnum):
-    """Monster element types."""
+    """Monster and skill element types."""
 
     FIRE = "fire"
     WATER = "water"
-    EARTH = "earth"
+    GRASS = "grass"
+    ELECTRIC = "electric"
     WIND = "wind"
-    NEUTRAL = "neutral"
+    GROUND = "ground"
+    ROCK = "rock"
+    DARK = "dark"
+    LIGHT = "light"
+    ICE = "ice"
 
 
 class Rarity(StrEnum):
@@ -53,7 +58,7 @@ class MonsterSpecies(BaseModel):
     Attributes:
         species_id: Unique species identifier.
         name: Display name of the species.
-        element: Elemental type.
+        types: Primary and optional secondary element types.
         rarity: Rarity tier.
         base_stats: Base stat block before level scaling.
         passive_trait: Passive ability name.
@@ -63,7 +68,7 @@ class MonsterSpecies(BaseModel):
 
     species_id: str = Field(min_length=1, description="Unique species identifier")
     name: str = Field(min_length=1, max_length=50)
-    element: Element
+    types: tuple[Element, Element | None] = (Element.FIRE, None)
     rarity: Rarity
     base_stats: StatBlock
     passive_trait: str = Field(description="Passive ability name")
@@ -72,6 +77,21 @@ class MonsterSpecies(BaseModel):
         default_factory=list,
         description="Skills this species can learn",
     )
+
+    @property
+    def element(self) -> Element:
+        """Backward compatibility: return primary type."""
+        return self.types[0]
+
+    @property
+    def primary_type(self) -> Element:
+        """Return the primary element type."""
+        return self.types[0]
+
+    @property
+    def secondary_type(self) -> Element | None:
+        """Return the secondary element type, or None if single-typed."""
+        return self.types[1]
 
 
 def xp_for_level(level: int) -> int:

@@ -1,289 +1,298 @@
-# Project Plan: ElementsRPG — Deployment & API Layer
+# Project Plan: ElementsRPG Element System Redesign
 
-## Status: COMPLETE (All 7 Phases Done)
+## Status: Not Started
 ## Last Updated: 2026-03-05
+
+---
+
+## Previous Work Summary (Deployment & API Layer -- COMPLETE)
+
+All 7 deployment phases completed: FastAPI backend with 73 endpoints, Supabase Auth + PostgreSQL, Docker/Render/Vercel deployment, GitHub Actions CI/CD, 1068 tests passing. Full details in git history and CLAUDE.md session log.
+
+---
 
 ## Overview
 
-Transform the ElementsRPG Python backend from in-memory Pydantic models (884 tests, 99% coverage) into a fully deployed, production-ready API service. This involves adding a FastAPI layer, Supabase PostgreSQL persistence, Supabase Auth, deployment to Render, Unity WebGL hosting on Vercel, and CI/CD via GitHub Actions.
+Redesign the element/type system from 5 elements to 10, add dual typing for monsters, create a balanced type effectiveness chart, and update all existing content. This touches the core game logic layer, the content definitions (bestiary, skills, areas), the API/service layer, and the save/load system.
 
-**Rename**: Monster Survival RPG -> ElementsRPG (applies to package name, docs, config, and all user-facing strings).
+**Current State**: 5 elements (fire, water, earth, wind, neutral). Single-typed monsters. Simple 1.5x/0.5x chart with 8 entries. No immunities.
 
-**Current State**: All game logic is implemented as pure Python with Pydantic models. No API layer, no database, no deployment config. ~70 endpoints needed across 12 domains.
-
-**Target State**: Production-deployed FastAPI backend on Render, Supabase PostgreSQL + Auth, Unity WebGL on Vercel, automated CI/CD pipeline.
+**Target State**: 10 elements (water, fire, grass, electric, wind, ground, rock, dark, light, ice). Dual typing support. Full 10x10 effectiveness matrix with 2x/0.5x/0x multipliers. Backward-compatible saves.
 
 ---
 
-## Confirmed Stack
+## New Element Set
 
-| Component        | Technology                    |
-|------------------|-------------------------------|
-| Auth             | Supabase Auth (JWT)           |
-| Database         | Supabase PostgreSQL           |
-| ORM              | SQLAlchemy (async) + asyncpg  |
-| Migrations       | Alembic                       |
-| Backend Framework| FastAPI + uvicorn             |
-| Backend Hosting  | Render (web service)          |
-| WebGL Hosting    | Vercel (static files)         |
-| CI/CD            | GitHub Actions                |
-| Testing (API)    | httpx + pytest-asyncio        |
+| Old Element | Mapping / Notes |
+|-------------|----------------|
+| FIRE | Retained as FIRE |
+| WATER | Retained as WATER |
+| EARTH | Split into GRASS, GROUND, ROCK depending on monster/skill flavor |
+| WIND | Retained as WIND |
+| NEUTRAL | Remapped to DARK, LIGHT, ELECTRIC, or ICE depending on monster/skill flavor |
+
+New elements: **WATER, FIRE, GRASS, ELECTRIC, WIND, GROUND, ROCK, DARK, LIGHT, ICE**
 
 ---
 
-## Existing Codebase Modules
+## Type Effectiveness Chart (10x10)
 
-All modules live under `src/elements_rpg/` and need API endpoints:
+Multipliers: 2.0 = super effective, 0.5 = not effective, 0.0 = immune, 1.0 = neutral (omitted)
 
-| Module | Key Files | Models/Managers |
-|--------|-----------|-----------------|
-| monsters | models.py, bestiary.py, team.py, taming.py, skill_catalog.py | Monster, Team, TamingTracker |
-| combat | manager.py, damage_calc.py, strategy.py | CombatManager, StrategyProfile |
-| skills | progression.py, strategy_ai.py | SkillProgression, StrategyAI |
-| economy | manager.py, premium.py, subscription.py, crafting.py, reward_ads.py, life_skills.py, action_queue.py, areas.py | EconomyManager, Inventory, PlayerSubscription, RewardAdTracker, ActionQueue, LifeSkill |
-| idle | tracker.py, offline_gains.py | IdleTracker |
-| save_load | save_load.py | GameSaveData (aggregates all state) |
-| player | player.py | Player |
+| Attacking -> | Water | Fire | Grass | Electric | Wind | Ground | Rock | Dark | Light | Ice |
+|---|---|---|---|---|---|---|---|---|---|---|
+| **Water** | 0.5 | 2.0 | 0.5 | 1.0 | 1.0 | 2.0 | 2.0 | 1.0 | 1.0 | 1.0 |
+| **Fire** | 0.5 | 0.5 | 2.0 | 1.0 | 2.0 | 1.0 | 0.5 | 1.0 | 1.0 | 2.0 |
+| **Grass** | 2.0 | 0.5 | 0.5 | 1.0 | 0.5 | 2.0 | 2.0 | 1.0 | 1.0 | 0.5 |
+| **Electric** | 2.0 | 1.0 | 0.5 | 0.5 | 2.0 | **0.0** | 1.0 | 1.0 | 1.0 | 1.0 |
+| **Wind** | 1.0 | 0.5 | 2.0 | 0.5 | 1.0 | 2.0 | 0.5 | 1.0 | 1.0 | 1.0 |
+| **Ground** | 1.0 | 2.0 | 0.5 | 2.0 | 1.0 | 1.0 | 2.0 | 1.0 | 1.0 | 0.5 |
+| **Rock** | 1.0 | 2.0 | 0.5 | 1.0 | 2.0 | 0.5 | 1.0 | 1.0 | 1.0 | 2.0 |
+| **Dark** | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 0.5 | 2.0 | 1.0 |
+| **Light** | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 2.0 | 0.5 | 1.0 |
+| **Ice** | 0.5 | 0.5 | 2.0 | 1.0 | 2.0 | 2.0 | 0.5 | 1.0 | 1.0 | 0.5 |
+
+**Balance summary per type**:
+- Each type has 2-4 super effective matchups
+- Each type has 2-4 not-effective matchups (including self-resist)
+- 1 immunity: Ground is immune to Electric
+- Dark/Light are mutual: each is super effective against the other, resists itself
+- No single type dominates; all have clear offensive and defensive trade-offs
+
+**Dual typing rule**: For a dual-typed defender, multiply both matchup multipliers. Examples:
+- Electric vs Water/Ground defender: 2.0 * 0.0 = 0.0 (immune)
+- Fire vs Grass/Ice defender: 2.0 * 2.0 = 4.0 (double super effective)
+- Water vs Fire/Rock defender: 2.0 * 2.0 = 4.0
+- Fire vs Water/Ground defender: 0.5 * 1.0 = 0.5
+
+---
+
+## Files Affected
+
+### Core Game Logic (must change)
+| File | Change Description |
+|------|-------------------|
+| `src/elements_rpg/monsters/models.py` | Update Element enum (5 -> 10); add `types` field to MonsterSpecies as `tuple[Element, Element \| None]`; keep deprecated `element` property for backward compat |
+| `src/elements_rpg/combat/damage_calc.py` | Replace ELEMENT_CHART with 10x10 matrix; update `get_element_multiplier()` for dual-type defenders; update STAB for dual-typed attackers |
+| `src/elements_rpg/skills/progression.py` | No structural change (Skill already has `element: Element` field) -- just needs to work with new enum values |
+
+### Content Definitions (must change)
+| File | Change Description |
+|------|-------------------|
+| `src/elements_rpg/monsters/bestiary.py` | Reassign all 12 monsters to new elements; some get dual types; update `element` -> `types` field |
+| `src/elements_rpg/monsters/skill_catalog.py` | Reassign all skills from earth/fire/water to appropriate new elements (grass/ground/rock/ice/etc.) |
+| `src/elements_rpg/monsters/skill_catalog_extended.py` | Reassign wind/neutral skills to wind/dark/light/electric/ice |
+| `src/elements_rpg/economy/areas.py` | No element references in area definitions (monsters referenced by ID) -- likely no change |
+
+### API / Service Layer (may change)
+| File | Change Description |
+|------|-------------------|
+| `src/elements_rpg/services/monster_service.py` | Update response serialization (line ~297 exposes `species.element.value`) to expose `types` |
+| `src/elements_rpg/services/combat_service.py` | No direct element references -- delegates to CombatManager/damage_calc |
+| `src/elements_rpg/db/models/monster.py` | No change needed (stores species_id, not element directly) |
+| `src/elements_rpg/db/converters.py` | Update if it maps element fields |
+
+### Save/Load
+| File | Change Description |
+|------|-------------------|
+| `src/elements_rpg/save_load.py` | Bump SAVE_FORMAT_VERSION to 2; add migration logic for v1 saves (map old elements to new) |
+
+### Tests (~86 files reference Element)
+| Category | Key Test Files |
+|----------|---------------|
+| Core | `combat/tests/test_damage_calc.py`, `monsters/tests/test_models.py`, `monsters/tests/test_bestiary.py` |
+| Content | `monsters/tests/test_skill_catalog.py` |
+| API | `api/tests/test_monsters.py`, `api/tests/test_combat.py`, `api/tests/test_e2e.py` |
+| Services | `services/tests/test_combat_service.py` |
+
+---
+
+## Monster Redesign Plan (12 monsters -> new elements + dual types)
+
+### Area 1: Verdant Meadows
+
+| Monster | Old Element | New Types | Rationale |
+|---------|------------|-----------|-----------|
+| Leaflet | Earth | Grass | Plant monster, pure grass |
+| Ember Pup | Fire | Fire | Stays pure fire |
+| Breeze Sprite | Wind | Wind / Light | Sprite with light affinity |
+| Pebble Crab | Earth | Rock / Ground | Crab with shell = rock, lives on ground |
+| Dewdrop Slime | Water | Water | Stays pure water |
+| Meadow Fox | Wind | Wind / Electric | Fast fox with electric speed |
+
+### Area 2: Crystal Caverns
+
+| Monster | Old Element | New Types | Rationale |
+|---------|------------|-----------|-----------|
+| Crystal Bat | Wind | Dark / Wind | Cave bat, dark affinity |
+| Magma Wyrm | Fire | Fire / Ground | Magma = fire + ground |
+| Aqua Serpent | Water | Water / Ice | Deep water serpent with ice |
+| Shadow Moth | Neutral | Dark | Pure dark creature |
+| Geo Golem | Earth | Rock / Ground | Golem = rock + ground |
+| Prism Fairy | Neutral | Light | Pure light creature |
+
+**Dual-type count**: 6 single-typed, 6 dual-typed (balanced mix)
+
+---
+
+## Skill Reassignment Plan (28 skills)
+
+### Old Earth Skills -> Grass / Ground / Rock
+
+| Skill | Old Element | New Element | Rationale |
+|-------|-----------|-------------|-----------|
+| Vine Whip | Earth | Grass | Plant-based attack |
+| Root Bind | Earth | Grass | Plant roots |
+| Leaf Shield | Earth | Grass | Leaf-based defense |
+| Nature Heal | Earth | Grass | Nature/plant healing |
+| Rock Slam | Earth | Rock | Rock-based attack |
+| Stone Wall | Earth | Rock | Stone defense |
+| Earthquake | Earth | Ground | Ground-shaking AoE |
+| Fortify | Earth | Rock | Hardening defense |
+
+### Old Fire Skills -> Fire (mostly unchanged)
+
+| Skill | Old Element | New Element | Rationale |
+|-------|-----------|-------------|-----------|
+| Flame Bite | Fire | Fire | No change |
+| Fire Blast | Fire | Fire | No change |
+| Ember Shield | Fire | Fire | No change |
+| Heat Wave | Fire | Fire | No change |
+| Molten Fury | Fire | Fire | No change |
+| Flame Dash | Fire | Fire | No change |
+
+### Old Water Skills -> Water / Ice
+
+| Skill | Old Element | New Element | Rationale |
+|-------|-----------|-------------|-----------|
+| Aqua Jet | Water | Water | No change |
+| Healing Mist | Water | Water | No change |
+| Tidal Wave | Water | Water | No change |
+| Bubble Armor | Water | Water | No change |
+| Hydro Cannon | Water | Water | No change |
+
+### Old Wind Skills -> Wind (unchanged)
+
+| Skill | Old Element | New Element | Rationale |
+|-------|-----------|-------------|-----------|
+| Gust Slash | Wind | Wind | No change |
+| Tailwind Boost | Wind | Wind | No change |
+| Sonic Screech | Wind | Wind | No change |
+| Cyclone | Wind | Wind | No change |
+
+### Old Neutral Skills -> Dark / Light
+
+| Skill | Old Element | New Element | Rationale |
+|-------|-----------|-------------|-----------|
+| Shadow Bolt | Neutral | Dark | Shadow = dark |
+| Confuse Dust | Neutral | Dark | Disorienting = dark |
+| Prismatic Beam | Neutral | Light | Prismatic light |
+| Aura Pulse | Neutral | Light | Healing aura = light |
+| Life Drain | Neutral | Dark | Life drain = dark |
+
+**Note**: No skills for Electric or Ice in MVP. New skills can be added in a future phase, or existing monsters with Electric/Ice typing will rely on STAB-less coverage moves for now.
 
 ---
 
 ## Tasks
 
-### Phase 1: FastAPI Foundation
+### Phase 1: Core Type System (models + damage calc)
 
-**Goal**: Scaffold the FastAPI application with routers, middleware, config, and base structure. No database yet -- endpoints return mock/in-memory responses where needed.
+**Goal**: Update the Element enum, effectiveness matrix, damage calculation, and dual-type support at the model level. All existing tests must be updated to pass with new elements.
 
-- [x] `implementation-agent` | Rename project: update pyproject.toml name, description, package references, README, CLAUDE.md from "Monster Survival RPG" / "monster-rpg" to "ElementsRPG" / "elements-rpg" | complete
-- [x] `implementation-agent` | Add FastAPI + uvicorn + httpx + pytest-asyncio to dependencies via `uv add` | complete
-- [x] `implementation-agent` | Create `src/elements_rpg/api/` package with `__init__.py`, `app.py` (FastAPI app factory), and `config.py` (Settings via pydantic-settings, env vars for Supabase URL/keys, Render port, CORS origins) | complete
-- [x] `implementation-agent` | Create base router structure: `src/elements_rpg/api/routers/` with stub routers for all 12 domains (auth, combat, monsters, economy, idle, taming, skills, crafting, save_load, premium, subscriptions, ads) | complete
-- [x] `implementation-agent` | Set up CORS middleware -- allow Unity WebGL origins (localhost:* for dev, Vercel domain for prod), configurable via env vars | complete
-- [x] `implementation-agent` | Create global error handling middleware -- structured JSON error responses, map domain exceptions to HTTP status codes | complete
-- [x] `implementation-agent` | Create health check endpoint (`GET /health`) returning service status, version, timestamp | complete
-- [x] `implementation-agent` | Create Pydantic request/response schemas in `src/elements_rpg/api/schemas.py` -- shared API wrappers (SuccessResponse, ErrorResponse, PaginatedResponse, PaginationParams) | complete
-- [x] `implementation-agent` | Create `src/elements_rpg/api/dependencies.py` -- dependency injection stubs for DB session, current user, game state (Phase 2 implementation) | complete
-- [x] `review-agent` | Review Phase 1: verify app starts, health check works, all routers registered, CORS configured, error handling returns proper JSON | complete
+- [x] **Task 1.1** | Update `Element` enum in `models.py` -- replace 5 values with 10 new ones (WATER, FIRE, GRASS, ELECTRIC, WIND, GROUND, ROCK, DARK, LIGHT, ICE). Remove EARTH and NEUTRAL.
+- [x] **Task 1.2** | Add dual-typing support to `MonsterSpecies` -- add `types: tuple[Element, Element | None]` field. Keep `element` as a computed property returning `types[0]` for backward compatibility during transition.
+- [x] **Task 1.3** | Update `Monster` model -- ensure `effective_stats()`, `max_hp()`, and other methods work with dual-typed species. No stat changes needed.
+- [x] **Task 1.4** | Create full 10x10 effectiveness matrix in `damage_calc.py` -- replace `ELEMENT_CHART` dict with the matrix defined above. Include the Ground immunity to Electric (0.0).
+- [x] **Task 1.5** | Update `get_element_multiplier()` to accept optional second defender type -- signature becomes `get_element_multiplier(attack_element, defender_types)`. For dual-typed defenders, multiply both matchups.
+- [x] **Task 1.6** | Update `calculate_damage()` -- pass both defender types to `get_element_multiplier()`. Update STAB to grant 1.5x if skill element matches EITHER of the attacker's types.
+- [x] **Task 1.7** | Write comprehensive tests for type effectiveness -- test dual-type multiplication (4x, 1x, 0x edge cases), test STAB with dual-typed attackers, immunity tests. All 1079 tests passing.
 
-**Dependencies**: None. This is the starting phase.
+**Dependencies**: None. This is the foundation.
 
-**Success Criteria**: `uvicorn elements_rpg.api.app:create_app --factory` starts cleanly. `GET /health` returns 200. All 12 routers are registered (visible in auto-docs at `/docs`). CORS headers present. Error middleware returns structured JSON.
+**Success Criteria**: `Element` enum has 10 values. `MonsterSpecies` supports 1-2 types. Damage calc handles dual-type defenders and dual-type STAB. All new matchup tests pass.
 
----
-
-### Phase 2: Supabase Integration & Auth
-
-**Goal**: Connect to Supabase PostgreSQL, create SQLAlchemy models mirroring existing Pydantic models, set up Alembic migrations, and implement Supabase Auth JWT verification.
-
-- [x] `implementation-agent` | Add sqlalchemy[asyncio], asyncpg, alembic, python-jose[cryptography], pydantic-settings to dependencies via `uv add` | complete
-- [x] `implementation-agent` | Create `src/elements_rpg/db/` package with `engine.py` (async engine factory), `session.py` (async session dependency), `base.py` (declarative base) | complete
-- [x] `implementation-agent` | Create SQLAlchemy models in `src/elements_rpg/db/models/` mirroring all Pydantic models -- players, monsters, teams, team_members, inventories, economy_state, skills, taming_trackers, idle_trackers, action_queues, life_skills, subscriptions, ad_trackers, premium_purchases | complete
-- [x] `implementation-agent` | Set up Alembic: `alembic init`, configure `env.py` for async, create initial migration from SQLAlchemy models | complete
-- [x] `implementation-agent` | Create `src/elements_rpg/api/auth.py` -- Supabase JWT verification middleware (decode JWT, extract user_id, verify against Supabase JWKS endpoint), create `get_current_user` dependency | complete
-- [x] `implementation-agent` | Create auth router endpoints: `POST /auth/register` (calls Supabase Auth, creates player profile), `POST /auth/login` (proxy to Supabase Auth), `POST /auth/refresh` (token refresh), `GET /auth/me` (current user profile) | complete
-- [x] `implementation-agent` | Create player CRUD service: `src/elements_rpg/services/player_service.py` -- create, read, update player profile in PostgreSQL, bridge between Pydantic and SQLAlchemy models | complete
-- [x] `implementation-agent` | Create Pydantic <-> SQLAlchemy conversion utilities in `src/elements_rpg/db/converters.py` -- bidirectional mapping for all model pairs | complete
-- [x] `test-agent` | Write integration tests for auth flow (register, login, JWT verification, protected endpoint access) using httpx async client | complete
-- [x] `review-agent` | Review Phase 2: verify migrations run cleanly, auth flow works end-to-end, player CRUD persists to PostgreSQL, JWT middleware rejects invalid tokens | complete
-
-**Dependencies**: Phase 1 complete (FastAPI app exists to attach auth to).
-
-**Success Criteria**: `alembic upgrade head` creates all tables. Registration creates a Supabase user + DB player row. JWT middleware protects endpoints. Player CRUD works with PostgreSQL.
+**Files Changed**:
+- `src/elements_rpg/monsters/models.py`
+- `src/elements_rpg/combat/damage_calc.py`
+- `src/elements_rpg/combat/tests/test_damage_calc.py`
+- `src/elements_rpg/monsters/tests/test_models.py`
 
 ---
 
-### Phase 3: API Endpoints -- Core Gameplay (COMPLETE)
+### Phase 2: Content Update (bestiary + skills)
 
-**Goal**: Implement the highest-priority endpoints for save/load, monsters, teams, combat, and taming. All endpoints require authentication.
+**Goal**: Reassign all 12 monsters and 28 skills to the new element system. Some monsters gain dual types.
 
-#### Save/Load (Highest Priority)
-- [x] `implementation-agent` | Create save/load service: `src/elements_rpg/services/save_service.py` -- full GameSaveData read/write to PostgreSQL (JSON column for atomic save, with relational tables for queryable fields) | complete
-- [x] `implementation-agent` | `POST /saves` -- serialize and store full GameSaveData for authenticated user, with timestamp and version | complete
-- [x] `implementation-agent` | `GET /saves` -- retrieve latest GameSaveData for authenticated user | complete
-- [x] `implementation-agent` | `POST /saves/new` -- create fresh save for new player (calls create_new_save) | complete
-- [x] `implementation-agent` | `GET /saves/version` -- return save version without full deserialization | complete
+- [ ] **Task 2.1** | Update all 12 monster species in `bestiary.py` -- change `element=` to `types=` per the monster redesign table above. 6 single-typed, 6 dual-typed.
+- [ ] **Task 2.2** | Update Earth skills in `skill_catalog.py` -- reassign to Grass, Rock, or Ground per the skill reassignment table.
+- [ ] **Task 2.3** | Update Neutral skills in `skill_catalog_extended.py` -- reassign to Dark or Light per the skill reassignment table.
+- [ ] **Task 2.4** | Update Wind and remaining skill categorization comments/headers in both catalog files.
+- [ ] **Task 2.5** | Verify all monsters' `learnable_skill_ids` still make sense -- ensure dual-typed monsters have skill coverage for at least one of their types (STAB). Adjust learnable lists if needed.
+- [ ] **Task 2.6** | Update `economy/areas.py` if any element references exist (likely no change, but verify).
+- [ ] **Task 2.7** | Write/update tests -- `test_bestiary.py` (verify all 12 monsters have valid types from new enum), `test_skill_catalog.py` (verify all 28 skills have valid elements). Add tests asserting specific type assignments match the plan.
 
-#### Monsters
-- [x] `implementation-agent` | Create monster service: `src/elements_rpg/services/monster_service.py` -- wraps existing monster models/bestiary logic with DB persistence | complete
-- [x] `implementation-agent` | `GET /monsters/bestiary` -- list all available monster species (12 species from bestiary.py) | complete
-- [x] `implementation-agent` | `GET /monsters/bestiary/{species_id}` -- get species details (stats, skills, traits) | complete
-- [x] `implementation-agent` | `GET /monsters/owned` -- list player's owned monsters with current stats | complete
-- [x] `implementation-agent` | `GET /monsters/{monster_id}` -- get specific owned monster details | complete
-- [x] `implementation-agent` | `POST /monsters/{monster_id}/xp` -- grant XP to a monster, return level-up info | complete
-- [x] `implementation-agent` | `POST /monsters/{monster_id}/bond` -- increase bond level | complete
-- [x] `implementation-agent` | `PUT /monsters/{monster_id}/skills` -- equip/reorder monster skills (max 4) | complete
+**Dependencies**: Phase 1 complete (new Element enum and dual-type MonsterSpecies exist).
 
-#### Teams
-- [x] `implementation-agent` | Create team service: `src/elements_rpg/services/team_service.py` -- wraps Team model with DB persistence | complete
-- [x] `implementation-agent` | `GET /teams` -- list player's teams | complete
-- [x] `implementation-agent` | `POST /teams` -- create a new team (up to 6 monsters) | complete
-- [x] `implementation-agent` | `PUT /teams/{team_id}` -- update team composition | complete
-- [x] `implementation-agent` | `DELETE /teams/{team_id}` -- delete a team | complete
-- [x] `implementation-agent` | `PUT /teams/{team_id}/reorder` -- reorder team members | complete
-- [x] `implementation-agent` | `PUT /teams/{team_id}/roles` -- assign roles to team members | complete
+**Success Criteria**: All 12 monsters have correct new types (6 dual-typed). All 28 skills have correct new elements. No skill references an element that doesn't exist. All bestiary and skill catalog tests pass.
 
-#### Combat
-- [x] `implementation-agent` | Create combat service: `src/elements_rpg/services/combat_service.py` -- wraps CombatManager with in-memory session management | complete
-- [x] `implementation-agent` | `POST /combat/start` -- initiate combat with enemy species list, return session_id + initial state | complete
-- [x] `implementation-agent` | `POST /combat/{session_id}/round` -- process one combat round, return results (damage dealt, HP changes, fainted monsters) | complete
-- [x] `implementation-agent` | `POST /combat/{session_id}/finish` -- end combat, return final results + full combat log | complete
-- [x] `implementation-agent` | `GET /combat/{session_id}` + `GET /combat/{session_id}/log` -- retrieve combat state and log | complete
-
-#### Taming
-- [x] `implementation-agent` | Create taming service: `src/elements_rpg/services/taming_service.py` -- wraps TamingTracker with persistence | complete
-- [x] `implementation-agent` | `POST /taming/calculate` -- calculate taming chance for a species (base rate + food bonus + skill modifier + pity) | complete
-- [x] `implementation-agent` | `POST /taming/attempt` -- attempt to tame a monster, return success/fail + pity state | complete
-- [x] `implementation-agent` | `GET /taming/tracker` -- get current pity counters for all species | complete
-
-- [x] `test-agent` | Write API tests for all Phase 3 endpoints (save/load, monsters, teams, combat, taming) -- happy path + error cases | complete
-- [x] `review-agent` | Review Phase 3: verify all endpoints function correctly, auth required, proper error responses, save/load roundtrip integrity | complete
-
-**Dependencies**: Phase 2 complete (database + auth available).
-
-**Success Criteria**: Save/load roundtrip preserves all data. Monster CRUD works. Team management functional. Combat flow (start -> rounds -> finish) works end-to-end. Taming respects pity system. All endpoints require valid JWT.
+**Files Changed**:
+- `src/elements_rpg/monsters/bestiary.py`
+- `src/elements_rpg/monsters/skill_catalog.py`
+- `src/elements_rpg/monsters/skill_catalog_extended.py`
+- `src/elements_rpg/monsters/tests/test_bestiary.py`
+- `src/elements_rpg/monsters/tests/test_skill_catalog.py`
+- `src/elements_rpg/economy/areas.py` (verify only)
 
 ---
 
-### Phase 4: API Endpoints -- Economy & Progression
+### Phase 3: Save/Load Compatibility + API Integration
 
-**Goal**: Implement economy, crafting, life skills, action queue, idle/offline, and skill progression endpoints.
+**Goal**: Ensure old saves (v1) with old elements can be loaded and migrated. Update API responses to expose dual typing.
 
-#### Economy
-- [x] `implementation-agent` | Create economy API service: `src/elements_rpg/services/economy_service.py` -- wraps EconomyManager with DB | complete
-- [x] `implementation-agent` | `GET /economy/balance` -- get player gold and gems balance | complete
-- [x] `implementation-agent` | `POST /economy/gold/earn` -- add gold (from combat, crafting, etc.) | complete
-- [x] `implementation-agent` | `POST /economy/gold/spend` -- spend gold with validation | complete
-- [x] `implementation-agent` | `GET /economy/transactions` -- recent transaction history | complete
-- [x] `implementation-agent` | `GET /economy/areas` -- list all available game areas | complete
-- [x] `implementation-agent` | `GET /economy/areas/{area_id}` -- get area details | complete
+- [ ] **Task 3.1** | Bump `SAVE_FORMAT_VERSION` to 2 in `save_load.py`.
+- [ ] **Task 3.2** | Add v1 -> v2 migration logic in `save_load.py` -- when loading a v1 save, map old element values: `earth` -> `grass` (default), `neutral` -> `dark` (default). Remap monster species by looking up the new bestiary definitions.
+- [ ] **Task 3.3** | Update `deserialize_save()` and `load_from_dict()` to detect version and apply migration before validation.
+- [ ] **Task 3.4** | Update `monster_service.py` -- change response serialization from `species.element.value` to expose `types` as a list (e.g., `["fire", "ground"]` or `["water"]`).
+- [ ] **Task 3.5** | Update `db/converters.py` if it references element fields.
+- [ ] **Task 3.6** | Update `combat_service.py` if any element-specific logic exists (likely none -- it delegates to CombatManager).
+- [ ] **Task 3.7** | Write save/load migration tests -- create a v1 save fixture with old elements, load it, verify it migrates to v2 with correct new elements. Test roundtrip: save v2 -> load v2.
 
-#### Crafting
-- [x] `implementation-agent` | Create crafting API service: `src/elements_rpg/services/crafting_service.py` | complete
-- [x] `implementation-agent` | `GET /crafting/recipes` -- list available recipes | complete
-- [x] `implementation-agent` | `POST /crafting/execute` -- craft an item (checks materials, deducts, produces) | complete
-- [x] `implementation-agent` | `GET /crafting/inventory` -- get player's material inventory | complete
+**Dependencies**: Phase 2 complete (all content updated to new elements).
 
-#### Life Skills (integrated into crafting router)
-- [x] `implementation-agent` | `GET /crafting/life-skills` -- list all 3 life skills with levels and XP | complete
-- [x] `implementation-agent` | `POST /crafting/life-skills/{skill_id}/experience` -- grant XP to a life skill | complete
+**Success Criteria**: Old v1 saves load successfully with correct element migration. API responses expose `types` array instead of single `element`. Save roundtrip works. No data loss on migration.
 
-#### Action Queue (integrated into idle router as /idle/action-queue)
-- [x] `implementation-agent` | Create action queue logic in idle_service.py | complete
-- [x] `implementation-agent` | `GET /idle/action-queue` -- get current queue state (slots, active actions) | complete
-- [x] `implementation-agent` | `POST /idle/action-queue` -- add an action to the queue (crafting, cooking, training) | complete
-- [x] `implementation-agent` | `POST /idle/action-queue/{action_id}/cancel` -- cancel a queued action | complete
-- [x] `implementation-agent` | `POST /idle/action-queue/advance` -- process completed actions, return results | complete
-- [x] `implementation-agent` | `POST /idle/action-queue/expand` -- purchase additional queue slot | complete
-
-#### Idle & Offline
-- [x] `implementation-agent` | Create idle API service: `src/elements_rpg/services/idle_service.py` | complete
-- [x] `implementation-agent` | `POST /idle/record-clear` -- record an area clear time for BRPM calculation | complete
-- [x] `implementation-agent` | `GET /idle/tracker` -- get current best recorded performance metrics | complete
-- [x] `implementation-agent` | `GET /idle/offline-gains` -- calculate and collect offline gains (85% rate, 8hr cap) | complete
-
-#### Skills & Strategy
-- [x] `implementation-agent` | Create skills API service: `src/elements_rpg/services/skills_service.py` | complete
-- [x] `implementation-agent` | `GET /skills/catalog` -- list all 28 available skills | complete
-- [x] `implementation-agent` | `POST /skills/{skill_id}/experience` -- grant XP to a skill from usage | complete
-- [x] `implementation-agent` | `GET /skills/{skill_id}` -- get skill details including level and milestone | complete
-- [x] `implementation-agent` | `GET /skills/strategies` -- list strategy types and behaviors | complete
-- [x] `implementation-agent` | `POST /skills/strategies/{strategy}/experience` -- grant strategy XP | complete
-
-- [x] `test-agent` | Write API tests for idle, action queue, skills, strategies endpoints -- 28 tests covering happy path, validation, auth, errors | complete
-- [x] `review-agent` | Review Phase 4: verify economy transactions are atomic, action queue respects slot limits, offline gains cap at 8hr, skill XP formulas match game logic | complete
-
-**Dependencies**: Phase 3 complete (core gameplay endpoints exist, save/load works).
-
-**Success Criteria**: Economy transactions are atomic and consistent. Crafting checks and deducts materials correctly. Life skills gain XP and level up. Action queue respects slot limits (base 2, expandable). Offline gains apply 85% efficiency with 8hr cap. Skill progression matches existing formulas.
+**Files Changed**:
+- `src/elements_rpg/save_load.py`
+- `src/elements_rpg/services/monster_service.py`
+- `src/elements_rpg/db/converters.py`
+- `src/elements_rpg/tests/test_save_load.py`
+- `src/elements_rpg/api/tests/test_monsters.py`
 
 ---
 
-### Phase 5: API Endpoints -- Monetization (COMPLETE)
+### Phase 4: Full Test Suite Repair + E2E Validation
 
-**Goal**: Implement premium currency, subscriptions, and reward ads endpoints. These are convenience-only, never pay-to-win.
+**Goal**: Fix all remaining broken tests across the entire codebase. Run E2E combat tests with dual-typed monsters.
 
-#### Premium Store
-- [x] `implementation-agent` | Create premium API service: `src/elements_rpg/services/premium_service.py` | complete
-- [x] `implementation-agent` | `GET /premium/packages` -- list available gem packages with prices | complete
-- [x] `implementation-agent` | `GET /premium/upgrades` -- list available convenience upgrades (queue slots, etc.) | complete
-- [x] `implementation-agent` | `POST /premium/purchase/{upgrade_id}` -- purchase a convenience upgrade with gems | complete
-- [x] `implementation-agent` | `GET /premium/purchases` -- get player's upgrade purchase history | complete
+- [ ] **Task 4.1** | Fix all failing tests that reference old Element values (EARTH, NEUTRAL) -- grep for `Element.EARTH`, `Element.NEUTRAL`, `"earth"`, `"neutral"` across all test files and update.
+- [ ] **Task 4.2** | Update `combat/tests/test_manager.py` -- ensure combat tests use new elements and test dual-type combat scenarios.
+- [ ] **Task 4.3** | Update `combat/tests/test_strategy.py` -- fix any element-dependent strategy tests.
+- [ ] **Task 4.4** | Update API tests (`test_combat.py`, `test_e2e.py`, `test_taming.py`, `test_saves.py`) -- fix element references in test fixtures and assertions.
+- [ ] **Task 4.5** | Update `services/tests/test_combat_service.py` -- fix service-level combat tests.
+- [ ] **Task 4.6** | Create E2E combat test with dual-typed monsters -- Magma Wyrm (Fire/Ground) vs Aqua Serpent (Water/Ice), verify 4x multiplier Water -> Fire/Ground, verify STAB for dual-typed attacker.
+- [ ] **Task 4.7** | Run full test suite (`uv run pytest`). Target: all 1068+ tests passing, zero failures. Run `uv run ruff check .` and `uv run ruff format --check .` -- zero issues.
 
-#### Subscriptions
-- [x] `implementation-agent` | `GET /premium/subscriptions/plans` -- list available subscription tiers (monthly, quarterly, annual) | complete
-- [x] `implementation-agent` | `POST /premium/subscriptions/activate` -- activate a subscription tier | complete
-- [x] `implementation-agent` | `POST /premium/subscriptions/cancel` -- cancel active subscription | complete
-- [x] `implementation-agent` | `GET /premium/subscriptions/active` -- get current subscription state and benefits | complete
+**Dependencies**: Phase 3 complete (all production code updated).
 
-#### Reward Ads
-- [x] `implementation-agent` | `GET /premium/ads/available` -- list which ad reward types are available (respects cooldowns and daily limits) | complete
-- [x] `implementation-agent` | `POST /premium/ads/{reward_type}/watch` -- record an ad watch and grant reward (revive, idle boost, taming bonus, resource boost) | complete
-- [x] `implementation-agent` | `GET /premium/ads/tracker` -- get ad watch history, cooldowns, remaining daily watches | complete
+**Success Criteria**: Full test suite passes (1068+ tests). Ruff lint clean. Ruff format clean. E2E combat with dual types validated. No regressions.
 
-- [x] `test-agent` | Write API tests for all Phase 5 endpoints -- 29 tests covering gem purchases, subscription activation/cancellation, ad cooldowns and daily limits, auth enforcement | complete
-- [x] `review-agent` | Review Phase 5: verify no pay-to-win mechanics, subscription benefits match tiers, ad cooldowns enforced server-side, gem transactions atomic | complete
-
-**Dependencies**: Phase 4 complete (economy system works for gem/gold transactions).
-
-**Success Criteria**: Gem packages and upgrades are purchasable. Subscriptions activate/cancel with correct time-based expiry. Reward ads respect cooldowns (per-type) and daily limits. All monetization is convenience-only. No client-trusting -- all validation server-side.
-
----
-
-### Phase 6: Deployment & CI/CD
-
-**Goal**: Containerize the app, deploy to Render, set up Vercel for WebGL, and automate CI/CD with GitHub Actions.
-
-#### Docker
-- [x] `devops-agent` | Create `Dockerfile` -- multi-stage build, Python 3.11 slim, UV for deps, uvicorn entrypoint, non-root user | complete
-- [x] `devops-agent` | Create `.dockerignore` -- exclude tests, docs, .git, __pycache__, .venv | complete
-- [x] `devops-agent` | Test Docker build locally -- verify image builds and runs cleanly | complete
-
-#### Render
-- [x] `devops-agent` | Create `render.yaml` -- web service config (Docker runtime, health check path, auto-deploy from main branch) | complete
-- [x] `devops-agent` | Document required environment variables: `DATABASE_URL` (Supabase connection string), `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_JWT_SECRET`, `CORS_ORIGINS`, `ENV` (production/staging) | complete
-- [x] `devops-agent` | Create `scripts/start.sh` -- run Alembic migrations then start uvicorn (ensures DB is up-to-date on each deploy) | complete
-- [x] `devops-agent` | Deploy to Render staging -- verify health check, auth flow, and basic endpoint access | complete
-
-#### Vercel
-- [x] `devops-agent` | Create `vercel.json` in WebGL build output directory -- static file serving config, SPA fallback, cache headers for Unity WebGL assets (.wasm, .data, .framework.js) | complete
-- [x] `devops-agent` | Document Vercel deployment steps for Unity WebGL build output | complete
-
-#### GitHub Actions
-- [x] `devops-agent` | Create `.github/workflows/ci.yml` -- on push to any branch: install deps (UV), run ruff check, run ruff format --check, run mypy, run pytest with coverage, fail if coverage drops below 90% | complete
-- [x] `devops-agent` | Create `.github/workflows/deploy.yml` -- on merge to main: run CI, then trigger Render deploy (or auto-deploy via Render webhook) | complete
-- [x] `devops-agent` | Add branch protection rules documentation for `main` -- require CI pass, require PR review | complete
-
-- [x] `review-agent` | Review Phase 6: verify Docker build is reproducible, Render config is correct, GitHub Actions run successfully, env vars are documented and not hardcoded | complete
-
-**Dependencies**: Phase 5 complete (all endpoints exist to deploy). Docker/CI work can start in parallel with Phases 3-5 if needed.
-
-**Success Criteria**: `docker build` produces a working image. Render serves the API with health check passing. GitHub Actions run tests on every push. Deploy to Render triggers on merge to main. Vercel config serves Unity WebGL build.
-
----
-
-### Phase 7: Integration Testing & Polish (COMPLETE)
-
-**Goal**: Ensure the full system works end-to-end, is secure, performant, and well-documented.
-
-#### End-to-End Testing
-- [x] `test-agent` | Create E2E test suite: full player lifecycle -- register, create save, tame monsters, build team, combat loop, idle gains, craft items, purchase gems, subscribe | complete
-- [x] `test-agent` | Create cross-cutting concerns tests -- auth enforcement, public endpoints, error envelopes, input validation | complete
-
-#### Security
-- [x] `security-agent` | Rate limiting documented -- per-user limits on auth, purchases, ad watches (slowapi/Redis for production) | complete
-- [x] `security-agent` | Input validation audit -- all inputs validated via Pydantic schemas, no raw SQL, no injection vectors | complete
-- [x] `security-agent` | CORS hardened -- restrictive origins (no wildcard), limited methods/headers, warning on "*" | complete
-- [x] `security-agent` | Error response sanitization -- no stack traces leak in production, Supabase errors sanitized | complete
-- [x] `security-agent` | All monetization endpoints server-authoritative -- no client-trusted values for gems, gold, rewards | complete
-
-#### Documentation & Monitoring
-- [x] `implementation-agent` | FastAPI auto-docs verified -- all endpoints documented with schemas, docstrings, and tags | complete
-- [x] `implementation-agent` | README updated with deployment docs -- local dev, env vars, Docker, Render, API docs URL | complete
-
-- [x] `review-agent` | Final test run: 1077 tests passing, ruff lint clean, ruff format clean | complete
-
-**Dependencies**: Phase 6 complete (deployed and accessible).
-
-**Success Criteria**: E2E test passes full player lifecycle. All endpoints documented. Security hardened (CORS, error sanitization, rate limiting documented). 1077 tests passing.
+**Files Changed**:
+- All test files referencing Element values (~20+ files)
+- `src/elements_rpg/combat/tests/test_manager.py`
+- `src/elements_rpg/combat/tests/test_damage_calc.py`
+- `src/elements_rpg/api/tests/test_e2e.py`
+- Various other test files
 
 ---
 
@@ -291,11 +300,7 @@ All modules live under `src/elements_rpg/` and need API endpoints:
 
 | Blocker | Phase | Impact | Resolution |
 |---------|-------|--------|------------|
-| Supabase project not yet created | Phase 2 | Cannot test DB or auth integration | Create Supabase project, obtain URL + keys |
-| Render account not yet configured | Phase 6 | Cannot deploy | Create Render account, link GitHub repo |
-| Vercel account not yet configured | Phase 6 | Cannot host WebGL build | Create Vercel account, link repo or configure manual deploy |
-| Unity WebGL build not yet available | Phase 6 | Cannot test Vercel hosting end-to-end | Build Unity WebGL target, output to deploy directory |
-| Payment provider not selected | Phase 5 | Premium purchase endpoint is placeholder only | Select payment provider (Stripe, RevenueCat, etc.) for real purchases |
+| None currently identified | -- | -- | -- |
 
 ---
 
@@ -303,123 +308,12 @@ All modules live under `src/elements_rpg/` and need API endpoints:
 
 | Decision | Rationale |
 |----------|-----------|
-| Hybrid storage: JSON column + relational tables | GameSaveData is stored as atomic JSON for save/load speed; key fields (player level, monster count, subscription status) duplicated to relational columns for queries and analytics |
-| Service layer pattern | Routers call services, services call DB -- keeps business logic testable without HTTP, allows reuse between endpoints |
-| Supabase Auth (not custom) | Handles email/password, OAuth, JWT issuance, token refresh -- eliminates auth bugs and security surface area |
-| Alembic for migrations | Industry standard, supports async, works with SQLAlchemy models, enables zero-downtime deploys |
-| pydantic-settings for config | Type-safe env var loading, `.env` file support for local dev, validation on startup |
-| Docker multi-stage build | Small production image, reproducible builds, compatible with Render Docker runtime |
-
----
-
-## File Structure (Target)
-
-```
-src/elements_rpg/
-    __init__.py
-    main.py
-    config.py
-    player.py
-    save_load.py
-    conftest.py
-
-    api/
-        __init__.py
-        app.py                  # FastAPI app factory
-        config.py               # pydantic-settings (env vars)
-        auth.py                 # Supabase JWT verification
-        dependencies.py         # DI: db session, current user, services
-        middleware.py           # CORS, error handling, rate limiting
-        schemas/
-            __init__.py
-            common.py           # Pagination, error envelope, success wrapper
-            auth.py
-            combat.py
-            monsters.py
-            economy.py
-            crafting.py
-            idle.py
-            taming.py
-            skills.py
-            premium.py
-            subscriptions.py
-            ads.py
-            save_load.py
-        routers/
-            __init__.py
-            auth.py
-            combat.py
-            monsters.py
-            teams.py
-            taming.py
-            economy.py
-            crafting.py
-            life_skills.py
-            action_queue.py
-            idle.py
-            skills.py
-            premium.py
-            subscriptions.py
-            ads.py
-            save_load.py
-
-    db/
-        __init__.py
-        engine.py               # Async engine factory
-        session.py              # Async session dependency
-        base.py                 # Declarative base
-        converters.py           # Pydantic <-> SQLAlchemy mapping
-        models/
-            __init__.py
-            player.py
-            monster.py
-            team.py
-            combat.py
-            economy.py
-            skills.py
-            idle.py
-            monetization.py
-
-    services/
-        __init__.py
-        player_service.py
-        save_service.py
-        monster_service.py
-        team_service.py
-        combat_service.py
-        taming_service.py
-        economy_service.py
-        crafting_service.py
-        life_skills_service.py
-        action_queue_service.py
-        idle_service.py
-        skills_service.py
-        premium_service.py
-        subscription_service.py
-        ads_service.py
-
-    # Existing game logic modules (unchanged)
-    combat/
-    monsters/
-    skills/
-    economy/
-    idle/
-
-alembic/
-    env.py
-    versions/
-
-Dockerfile
-.dockerignore
-render.yaml
-vercel.json
-scripts/
-    start.sh
-.github/
-    workflows/
-        ci.yml
-        deploy.yml
-```
+| Replace `element` field with `types` tuple | Dual typing requires 1-2 elements per monster. A tuple of `(Element, Element \| None)` is the simplest representation. Keep `element` as backward-compat property. |
+| Multiply dual-type matchups (not additive) | Follows Pokemon-style precedent: 2x * 2x = 4x for double weakness, 2x * 0.5x = 1x for offset. Creates meaningful strategic depth. |
+| Only 1 immunity (Ground immune to Electric) | Immunities are powerful. Starting with just 1 keeps things balanced while adding strategic interest. More can be added later. |
+| Map old elements in save migration, not per-field | Monsters reference species by ID, so migrating means looking up the new bestiary definition rather than mapping element values per-monster. Saves store species_id, and the species definition (in code) already has the correct new types. |
+| No new Electric/Ice skills in this phase | Keep scope focused on the type system redesign. Electric/Ice typed monsters can use coverage moves. New skills can be added in a follow-up phase. |
+| Dark/Light are symmetric | Each super effective against the other, each resists itself. Simple and intuitive for players. |
 
 ---
 
@@ -427,86 +321,15 @@ scripts/
 
 | Date | Phase | Tasks Completed | Notes |
 |------|-------|-----------------|-------|
-| 2026-03-05 | -- | Plan created | All 7 phases defined, 73 endpoints mapped across 12 domains |
-| 2026-03-05 | 1 | Rename project to ElementsRPG | Package dir renamed src/monster_rpg -> src/elements_rpg, all imports updated, pyproject.toml + README updated, 884 tests pass |
-| 2026-03-05 | 1 | Add FastAPI dependencies | Added fastapi, uvicorn[standard], httpx to project deps; pytest-asyncio to dev deps; uv sync clean, 884 tests pass |
-| 2026-03-05 | 1 | Add health check endpoint | GET /health returns status, service name, version, UTC timestamp; ruff clean |
-| 2026-03-05 | 1 | Create FastAPI app factory and settings config | api/config.py (pydantic-settings), api/app.py (factory with CORS, error handlers, health, router registry), api/routers/__init__.py (dynamic router loading), pydantic-settings added |
-| 2026-03-05 | 1 | Add API schemas and dependency stubs | api/schemas.py (SuccessResponse, ErrorResponse, PaginatedResponse, PaginationParams), api/dependencies.py (get_db_session, get_current_user, get_game_state stubs) |
-| 2026-03-05 | 1 | Phase 1 Review complete | All 10 tasks verified: app starts (69 routes), health returns 200, /docs serves Swagger UI, CORS configured (localhost:*), error handlers return structured JSON, 884 tests pass, ruff clean, no unused imports |
-| 2026-03-05 | 2 | JWT auth middleware + auth endpoints | api/auth.py (Supabase JWT decode, get_current_user dep), routers/auth.py (register/login/refresh/me with Supabase proxy), dependencies.py updated, B008 suppressed for FastAPI Depends pattern, 884 tests pass |
-| 2026-03-05 | 2 | Player service + DB converters | services/player_service.py (create/read/update CRUD), db/converters.py (bidirectional Pydantic<->SQLAlchemy for player, game_state, monster, economy), auth router refactored to use create_player service, 884 tests pass |
-| 2026-03-05 | 2 | Phase 2 Review complete | All 10 tasks verified: DB models cover 9 tables, Alembic migration matches models, auth flow (register/login/refresh/me) fully implemented, JWT middleware rejects invalid/expired/missing tokens, player CRUD service works, 902 tests pass, ruff clean, no hardcoded secrets |
-| 2026-03-05 | 3 | Save/Load service + endpoints | save_service.py (save/load/version/create_fresh), saves router (POST /, GET /, POST /new, GET /version) with auth, 902 tests pass, ruff clean |
-| 2026-03-05 | 3 | Monster service + endpoints | monster_service.py (bestiary, owned, xp, bond, skills), monsters router (7 endpoints: 2 public bestiary, 5 authenticated CRUD/mutation), 902 tests pass, ruff clean |
-| 2026-03-05 | 3 | Team service + endpoints | team_service.py (CRUD, reorder, assign_roles with ownership validation), teams router (6 endpoints: list, create, update, delete, reorder, roles), 902 tests pass, ruff clean |
-| 2026-03-05 | 3 | Taming service + endpoints | taming_service.py (calculate_chance, attempt_tame_monster, get_tracker with game state persistence), taming router (3 endpoints: POST /calculate, POST /attempt, GET /tracker) with auth, 902 tests pass, ruff clean |
-| 2026-03-05 | 3 | Combat service + endpoints | combat_service.py (in-memory session management, start/round/finish/state/log), combat router (5 endpoints: POST start, POST round, POST finish, GET state, GET log) with auth + ownership validation, 943 tests pass, ruff clean |
-| 2026-03-05 | 3 | Phase 3 API tests + review complete | test_saves.py (11 tests), test_monsters.py (17 tests), test_teams.py (14 tests), test_taming.py (14 tests) — 56 new tests, 999 total passing, all endpoints verified: auth required, proper error responses (401/403/404/409/422), SuccessResponse envelopes, ruff clean |
-| 2026-03-05 | 4 | Idle, action queue, skills, strategy endpoints | idle_service.py (8 functions), skills_service.py (5 functions), idle.py router (8 endpoints), skills.py router (5 endpoints), test_idle.py (15 tests), test_skills.py (13 tests) — 1027 total passing, ruff clean |
-| 2026-03-05 | 5 | Premium store, subscriptions, reward ads endpoints | premium_service.py (11 functions across 3 domains), premium.py router (11 endpoints: 3 public, 8 authenticated), test_premium.py (29 tests) — 1056 total passing, ruff clean |
-| 2026-03-05 | 6 | Docker, Render, Vercel, GitHub Actions deployment config | Dockerfile (Python 3.11 slim, UV, non-root user), .dockerignore, render.yaml (IaC with env vars), vercel.json (Unity WebGL headers), .github/workflows/ci.yml (lint+test+deploy), scripts/start.sh (migrations+uvicorn), .gitignore updated — 1056 tests pass, ruff clean |
-| 2026-03-05 | 7 | E2E tests, security hardening, README deployment docs | test_e2e.py (21 tests, full player journey + cross-cutting), app.py (CORS hardened, rate limiting notes), routers/auth.py (error sanitization), health.py (tag fix), README.md (deployment docs) -- 1077 tests pass, ruff clean, all phases complete |
-| 2026-03-05 | Review | Post-review fixes: server-authoritative economy, optimistic save locking, shared dependencies | Removed 7 client-trusted endpoints, added expected_version to saves, combat loads real monsters, 27 files changed -- 1068 tests passing, ruff clean |
-| 2026-03-05 | Docs | Final documentation update | CLAUDE.md, plan.md, README.md, MEMORY.md updated for deployment completion |
-
----
-
-## Endpoint Summary (73 endpoints)
-
-| Domain | Count | Phase |
-|--------|-------|-------|
-| Health | 1 | 1 |
-| Auth | 4 | 2 |
-| Save/Load | 4 | 3 |
-| Monsters | 7 | 3 |
-| Teams | 6 | 3 |
-| Combat | 4 | 3 |
-| Taming | 3 | 3 |
-| Economy | 4 | 4 |
-| Crafting | 4 | 4 |
-| Life Skills | 3 | 4 |
-| Action Queue | 5 | 4 |
-| Idle/Offline | 4 | 4 |
-| Skills/Strategy | 6 | 4 |
-| Premium | 6 | 5 |
-| Subscriptions | 5 | 5 |
-| Reward Ads | 3 | 5 |
-| **Total** | **73** | |
-
----
-
-## Post-Review Fixes (2026-03-05)
-
-Resolved 3 critical blockers and 9 high-priority issues from PR review:
-
-### Critical Blockers (Fixed)
-1. **Empty JWT secret allows forgery** -- Added validation in `auth.py` to reject empty/missing `supabase_jwt_secret` before attempting JWT decode.
-2. **Server-authoritative economy** -- Removed all client-trusted endpoints (`POST /economy/gold/earn`, `POST /economy/gold/spend`, `POST /monsters/{id}/xp`, `POST /monsters/{id}/bond`, `POST /skills/{id}/experience`, `POST /skills/strategies/{id}/experience`, `POST /crafting/life-skills/{id}/experience`). Gold/XP now only awarded through validated server-side actions (combat finish, crafting).
-3. **Save version race condition** -- Added `expected_version` parameter to `SaveRequest` for optimistic locking. Returns 409 Conflict when version mismatch detected.
-
-### High-Priority Fixes
-4. **Shared resolve_player_id dependency** -- Extracted to `api/dependencies.py`, replacing 8 duplicate implementations across routers.
-5. **Combat placeholder replaced** -- Start combat now loads player's actual monsters from DB via `monster_service.get_owned_monsters`, with fallback team for new players.
-6. **Combat rewards server-authoritative** -- Finish combat now persists gold rewards via `economy_service.earn_gold`.
-7. **Session TTL cleanup** -- Added 30-minute TTL to combat sessions with automatic stale session cleanup.
-8. **CORS origins restrictive** -- Changed from `["http://localhost:*"]` to explicit `["http://localhost:3000", "http://localhost:8080"]`.
-9. **Docs hidden in production** -- `docs_url`/`redoc_url` only enabled when `debug=True`.
-10. **Error handler hardened** -- ValueError handler logs actual error but returns generic "Invalid request" to clients.
-11. **Startup validation** -- Added `validate_required_for_production()` checking required settings on startup.
-12. **Session factory cached** -- Added `@lru_cache` to `get_session_factory`.
-13. **Auth registration atomicity** -- Wrapped `create_player` in try/except for graceful failure after Supabase user creation.
-
-**Result**: 27 files changed, 676 insertions, 1030 deletions. 1068 tests passing, ruff clean.
+| 2026-03-05 | -- | Plan created | 4 phases, 28 tasks, 10 elements, dual typing, full effectiveness matrix |
+| 2026-03-05 | Phase 1 | Tasks 1.1-1.7 complete | 10 elements, dual typing, effectiveness matrix, damage calc updated. Also updated bestiary (12 monsters) and skill catalogs (28 skills) to new elements. 1079 tests passing. |
 
 ---
 
 ## Notes
 
-- Existing 884 tests and game logic modules remain untouched -- the API layer wraps them, it does not replace them.
-- The package rename (monster_rpg -> elements_rpg) should be done first to avoid confusion in all new code.
-- GameSaveData already aggregates all player state -- the save/load endpoints can leverage this directly for atomic persistence.
-- Monetization is strictly convenience-only per the PRD -- no direct stat purchases, no pay-to-win. This must be enforced server-side.
-- The idle system's 85% efficiency rate and 8hr offline cap must be enforced server-side, never trusted from the client.
-- All taming pity state must be server-authoritative to prevent manipulation.
-- Phase 6 (Docker/CI) can be started in parallel with Phases 3-5 since it depends only on the app structure from Phase 1.
+- The `element` field on `MonsterSpecies` is used in ~86 files. The backward-compat property on MonsterSpecies will minimize churn -- most code accessing `species.element` will continue to work (returns primary type).
+- The damage_calc.py change is the most critical -- it's the only place where type effectiveness is evaluated at runtime.
+- STAB (Same Type Attack Bonus) must check BOTH types of the attacker for dual-typed monsters.
+- The save migration is simple because monsters in saves reference species by ID. When the game loads, it looks up the species from the bestiary (which will have the new types). The only risk is if old saves stored the element value directly -- `GameSaveData.monsters` stores full `Monster` objects with embedded `MonsterSpecies`, so the migration must update the embedded species data.
+- Electric and Ice have no dedicated skills yet. This is intentional scope limitation. Dual-typed monsters like Meadow Fox (Wind/Electric) get STAB on Wind moves but not Electric. Future work can add Electric/Ice skills.

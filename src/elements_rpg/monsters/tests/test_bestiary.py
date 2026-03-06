@@ -47,16 +47,26 @@ class TestUniqueness:
 
 
 class TestElementDistribution:
-    """Tests for element distribution across the bestiary."""
+    """Tests for primary element distribution across the bestiary."""
 
-    def test_element_counts(self) -> None:
-        elements = [s.element for s in MVP_SPECIES.values()]
+    def test_primary_element_counts(self) -> None:
+        elements = [s.primary_type for s in MVP_SPECIES.values()]
         counts = Counter(elements)
-        assert counts[Element.EARTH] == 3
+        assert counts[Element.GRASS] == 1
         assert counts[Element.FIRE] == 2
         assert counts[Element.WATER] == 2
-        assert counts[Element.WIND] == 3
-        assert counts[Element.NEUTRAL] == 2
+        assert counts[Element.WIND] == 2
+        assert counts[Element.ROCK] == 2
+        assert counts[Element.DARK] == 2
+        assert counts[Element.LIGHT] == 1
+
+    def test_dual_typed_count(self) -> None:
+        dual = [s for s in MVP_SPECIES.values() if s.secondary_type is not None]
+        assert len(dual) == 7
+
+    def test_single_typed_count(self) -> None:
+        single = [s for s in MVP_SPECIES.values() if s.secondary_type is None]
+        assert len(single) == 5
 
 
 class TestRarityDistribution:
