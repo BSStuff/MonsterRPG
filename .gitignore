@@ -24,6 +24,8 @@ wheels/
 # Virtual environments
 .venv
 .env
+.env.local
+.env.production
 
 # LLM and AI tool directories
 .llm/

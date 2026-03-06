@@ -1,6 +1,6 @@
 # Project Plan: ElementsRPG — Deployment & API Layer
 
-## Status: In Progress
+## Status: Phase 6 Complete
 ## Last Updated: 2026-03-05
 
 ## Overview
@@ -233,26 +233,26 @@ All modules live under `src/elements_rpg/` and need API endpoints:
 **Goal**: Containerize the app, deploy to Render, set up Vercel for WebGL, and automate CI/CD with GitHub Actions.
 
 #### Docker
-- [ ] `devops-agent` | Create `Dockerfile` -- multi-stage build, Python 3.11 slim, UV for deps, uvicorn entrypoint, non-root user | pending
-- [ ] `devops-agent` | Create `.dockerignore` -- exclude tests, docs, .git, __pycache__, .venv | pending
-- [ ] `devops-agent` | Test Docker build locally -- verify image builds and runs cleanly | pending
+- [x] `devops-agent` | Create `Dockerfile` -- multi-stage build, Python 3.11 slim, UV for deps, uvicorn entrypoint, non-root user | complete
+- [x] `devops-agent` | Create `.dockerignore` -- exclude tests, docs, .git, __pycache__, .venv | complete
+- [x] `devops-agent` | Test Docker build locally -- verify image builds and runs cleanly | complete
 
 #### Render
-- [ ] `devops-agent` | Create `render.yaml` -- web service config (Docker runtime, health check path, auto-deploy from main branch) | pending
-- [ ] `devops-agent` | Document required environment variables: `DATABASE_URL` (Supabase connection string), `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_JWT_SECRET`, `CORS_ORIGINS`, `ENV` (production/staging) | pending
-- [ ] `devops-agent` | Create `scripts/start.sh` -- run Alembic migrations then start uvicorn (ensures DB is up-to-date on each deploy) | pending
-- [ ] `devops-agent` | Deploy to Render staging -- verify health check, auth flow, and basic endpoint access | pending
+- [x] `devops-agent` | Create `render.yaml` -- web service config (Docker runtime, health check path, auto-deploy from main branch) | complete
+- [x] `devops-agent` | Document required environment variables: `DATABASE_URL` (Supabase connection string), `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_JWT_SECRET`, `CORS_ORIGINS`, `ENV` (production/staging) | complete
+- [x] `devops-agent` | Create `scripts/start.sh` -- run Alembic migrations then start uvicorn (ensures DB is up-to-date on each deploy) | complete
+- [x] `devops-agent` | Deploy to Render staging -- verify health check, auth flow, and basic endpoint access | complete
 
 #### Vercel
-- [ ] `devops-agent` | Create `vercel.json` in WebGL build output directory -- static file serving config, SPA fallback, cache headers for Unity WebGL assets (.wasm, .data, .framework.js) | pending
-- [ ] `devops-agent` | Document Vercel deployment steps for Unity WebGL build output | pending
+- [x] `devops-agent` | Create `vercel.json` in WebGL build output directory -- static file serving config, SPA fallback, cache headers for Unity WebGL assets (.wasm, .data, .framework.js) | complete
+- [x] `devops-agent` | Document Vercel deployment steps for Unity WebGL build output | complete
 
 #### GitHub Actions
-- [ ] `devops-agent` | Create `.github/workflows/ci.yml` -- on push to any branch: install deps (UV), run ruff check, run ruff format --check, run mypy, run pytest with coverage, fail if coverage drops below 90% | pending
-- [ ] `devops-agent` | Create `.github/workflows/deploy.yml` -- on merge to main: run CI, then trigger Render deploy (or auto-deploy via Render webhook) | pending
-- [ ] `devops-agent` | Add branch protection rules documentation for `main` -- require CI pass, require PR review | pending
+- [x] `devops-agent` | Create `.github/workflows/ci.yml` -- on push to any branch: install deps (UV), run ruff check, run ruff format --check, run mypy, run pytest with coverage, fail if coverage drops below 90% | complete
+- [x] `devops-agent` | Create `.github/workflows/deploy.yml` -- on merge to main: run CI, then trigger Render deploy (or auto-deploy via Render webhook) | complete
+- [x] `devops-agent` | Add branch protection rules documentation for `main` -- require CI pass, require PR review | complete
 
-- [ ] `review-agent` | Review Phase 6: verify Docker build is reproducible, Render config is correct, GitHub Actions run successfully, env vars are documented and not hardcoded | pending
+- [x] `review-agent` | Review Phase 6: verify Docker build is reproducible, Render config is correct, GitHub Actions run successfully, env vars are documented and not hardcoded | complete
 
 **Dependencies**: Phase 5 complete (all endpoints exist to deploy). Docker/CI work can start in parallel with Phases 3-5 if needed.
 
@@ -451,6 +451,7 @@ scripts/
 | 2026-03-05 | 3 | Phase 3 API tests + review complete | test_saves.py (11 tests), test_monsters.py (17 tests), test_teams.py (14 tests), test_taming.py (14 tests) — 56 new tests, 999 total passing, all endpoints verified: auth required, proper error responses (401/403/404/409/422), SuccessResponse envelopes, ruff clean |
 | 2026-03-05 | 4 | Idle, action queue, skills, strategy endpoints | idle_service.py (8 functions), skills_service.py (5 functions), idle.py router (8 endpoints), skills.py router (5 endpoints), test_idle.py (15 tests), test_skills.py (13 tests) — 1027 total passing, ruff clean |
 | 2026-03-05 | 5 | Premium store, subscriptions, reward ads endpoints | premium_service.py (11 functions across 3 domains), premium.py router (11 endpoints: 3 public, 8 authenticated), test_premium.py (29 tests) — 1056 total passing, ruff clean |
+| 2026-03-05 | 6 | Docker, Render, Vercel, GitHub Actions deployment config | Dockerfile (Python 3.11 slim, UV, non-root user), .dockerignore, render.yaml (IaC with env vars), vercel.json (Unity WebGL headers), .github/workflows/ci.yml (lint+test+deploy), scripts/start.sh (migrations+uvicorn), .gitignore updated — 1056 tests pass, ruff clean |
 
 ---
 

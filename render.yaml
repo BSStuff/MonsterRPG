@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: elements-rpg-api
+    runtime: docker
+    plan: free
+    envVars:
+      - key: ELEMENTS_SUPABASE_URL
+        sync: false
+      - key: ELEMENTS_SUPABASE_KEY
+        sync: false
+      - key: ELEMENTS_SUPABASE_SERVICE_KEY
+        sync: false
+      - key: ELEMENTS_SUPABASE_JWT_SECRET
+        sync: false
+      - key: ELEMENTS_DATABASE_URL
+        sync: false
+      - key: ELEMENTS_CORS_ORIGINS
+        sync: false
+      - key: ELEMENTS_DEBUG
+        value: "false"
+    healthCheckPath: /health
+    autoDeploy: true
