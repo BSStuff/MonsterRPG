@@ -218,33 +218,35 @@ public static class ProjectSetup
             TMP_InputField.ContentType.Password;
 
         // ConfirmPasswordGroup (starts inactive — only shown in register mode)
+        // No VerticalLayoutGroup — just a container with fixed height so the child field fits exactly
         var confirmPasswordGroup = CreateUIObject("ConfirmPasswordGroup", loginPanel.transform);
         var cpgLE = confirmPasswordGroup.AddComponent<LayoutElement>();
         cpgLE.preferredHeight = 50;
-        var cpgVLG = confirmPasswordGroup.AddComponent<VerticalLayoutGroup>();
-        cpgVLG.childForceExpandWidth = true;
-        cpgVLG.childForceExpandHeight = true;
-        cpgVLG.childControlWidth = true;
-        cpgVLG.childControlHeight = true;
-
+        cpgLE.minHeight = 50;
+        // Stretch the child field to fill the group
         var confirmPasswordField = CreateTMPInputField(
             confirmPasswordGroup.transform, "ConfirmPasswordField", "Confirm Password", 50);
+        var cpfRT = confirmPasswordField.GetComponent<RectTransform>();
+        cpfRT.anchorMin = Vector2.zero;
+        cpfRT.anchorMax = Vector2.one;
+        cpfRT.offsetMin = Vector2.zero;
+        cpfRT.offsetMax = Vector2.zero;
         confirmPasswordField.GetComponent<TMP_InputField>().contentType =
             TMP_InputField.ContentType.Password;
         confirmPasswordGroup.SetActive(false);
 
-        // UsernameGroup
+        // UsernameGroup (same pattern — container with fixed height, no layout group)
         var usernameGroup = CreateUIObject("UsernameGroup", loginPanel.transform);
         var ugLE = usernameGroup.AddComponent<LayoutElement>();
         ugLE.preferredHeight = 50;
-        var ugVLG = usernameGroup.AddComponent<VerticalLayoutGroup>();
-        ugVLG.childForceExpandWidth = true;
-        ugVLG.childForceExpandHeight = true;
-        ugVLG.childControlWidth = true;
-        ugVLG.childControlHeight = true;
-
+        ugLE.minHeight = 50;
         var usernameField = CreateTMPInputField(
             usernameGroup.transform, "UsernameField", "Username", 50);
+        var ufRT = usernameField.GetComponent<RectTransform>();
+        ufRT.anchorMin = Vector2.zero;
+        ufRT.anchorMax = Vector2.one;
+        ufRT.offsetMin = Vector2.zero;
+        ufRT.offsetMax = Vector2.zero;
 
         // SignInButton
         var signInBtn = CreateButtonWithText(
