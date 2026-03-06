@@ -1,338 +1,272 @@
-# Project Plan: ElementsRPG Element System Redesign
+# Feature: Unity WebGL Proof of Concept
 
-## Status: COMPLETE
-## Last Updated: 2026-03-05
-
----
-
-## Previous Work Summary (Deployment & API Layer -- COMPLETE)
-
-All 7 deployment phases completed: FastAPI backend with 73 endpoints, Supabase Auth + PostgreSQL, Docker/Render/Vercel deployment, GitHub Actions CI/CD, 1068 tests passing. Full details in git history and CLAUDE.md session log.
+## Status
+- **Phase**: plan
+- **Status**: active
+- **Progress**: 25/28 tasks complete
+- **Last Updated**: 2026-03-06
 
 ---
 
-## Overview
+## Feature Scope
 
-Redesign the element/type system from 5 elements to 10, add dual typing for monsters, create a balanced type effectiveness chart, and update all existing content. This touches the core game logic layer, the content definitions (bestiary, skills, areas), the API/service layer, and the save/load system.
+### Description
+Build a minimal Unity WebGL client that connects to the existing ElementsRPG FastAPI backend and demonstrates the core game loop: register/login, view owned monsters, fight enemies, see rewards. This is a proof-of-concept to validate the full-stack integration (Unity WebGL -> REST API -> Supabase Auth -> PostgreSQL) before investing in production art, animations, and polish.
 
-**Current State**: 5 elements (fire, water, earth, wind, neutral). Single-typed monsters. Simple 1.5x/0.5x chart with 8 entries. No immunities.
+### Acceptance Criteria
+1. An empty Unity WebGL build deploys to Vercel and loads in a browser (day-one validation)
+2. A player can register a new account or log in with existing credentials
+3. After login, the player sees a list of their owned monsters with name, level, and element type
+4. The player can start a combat encounter, advance rounds, and see HP changes
+5. After combat ends, the player sees XP and gold rewards
+6. Game state persists between sessions (save/load via backend)
+7. Token refresh works transparently (401 -> refresh -> retry)
+8. The entire flow works from a Vercel-hosted WebGL build hitting the Render-hosted backend
 
-**Target State**: 10 elements (water, fire, grass, electric, wind, ground, rock, dark, light, ice). Dual typing support. Full 10x10 effectiveness matrix with 2x/0.5x/0x multipliers. Backward-compatible saves.
-
----
-
-## New Element Set
-
-| Old Element | Mapping / Notes |
-|-------------|----------------|
-| FIRE | Retained as FIRE |
-| WATER | Retained as WATER |
-| EARTH | Split into GRASS, GROUND, ROCK depending on monster/skill flavor |
-| WIND | Retained as WIND |
-| NEUTRAL | Remapped to DARK, LIGHT, ELECTRIC, or ICE depending on monster/skill flavor |
-
-New elements: **WATER, FIRE, GRASS, ELECTRIC, WIND, GROUND, ROCK, DARK, LIGHT, ICE**
-
----
-
-## Type Effectiveness Chart (10x10)
-
-Multipliers: 2.0 = super effective, 0.5 = not effective, 0.0 = immune, 1.0 = neutral (omitted)
-
-| Attacking -> | Water | Fire | Grass | Electric | Wind | Ground | Rock | Dark | Light | Ice |
-|---|---|---|---|---|---|---|---|---|---|---|
-| **Water** | 0.5 | 2.0 | 0.5 | 1.0 | 1.0 | 2.0 | 2.0 | 1.0 | 1.0 | 1.0 |
-| **Fire** | 0.5 | 0.5 | 2.0 | 1.0 | 2.0 | 1.0 | 0.5 | 1.0 | 1.0 | 2.0 |
-| **Grass** | 2.0 | 0.5 | 0.5 | 1.0 | 0.5 | 2.0 | 2.0 | 1.0 | 1.0 | 0.5 |
-| **Electric** | 2.0 | 1.0 | 0.5 | 0.5 | 2.0 | **0.0** | 1.0 | 1.0 | 1.0 | 1.0 |
-| **Wind** | 1.0 | 0.5 | 2.0 | 0.5 | 1.0 | 2.0 | 0.5 | 1.0 | 1.0 | 1.0 |
-| **Ground** | 1.0 | 2.0 | 0.5 | 2.0 | 1.0 | 1.0 | 2.0 | 1.0 | 1.0 | 0.5 |
-| **Rock** | 1.0 | 2.0 | 0.5 | 1.0 | 2.0 | 0.5 | 1.0 | 1.0 | 1.0 | 2.0 |
-| **Dark** | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 0.5 | 2.0 | 1.0 |
-| **Light** | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | 2.0 | 0.5 | 1.0 |
-| **Ice** | 0.5 | 0.5 | 2.0 | 1.0 | 2.0 | 2.0 | 0.5 | 1.0 | 1.0 | 0.5 |
-
-**Balance summary per type**:
-- Each type has 2-4 super effective matchups
-- Each type has 2-4 not-effective matchups (including self-resist)
-- 1 immunity: Ground is immune to Electric
-- Dark/Light are mutual: each is super effective against the other, resists itself
-- No single type dominates; all have clear offensive and defensive trade-offs
-
-**Dual typing rule**: For a dual-typed defender, multiply both matchup multipliers. Examples:
-- Electric vs Water/Ground defender: 2.0 * 0.0 = 0.0 (immune)
-- Fire vs Grass/Ice defender: 2.0 * 2.0 = 4.0 (double super effective)
-- Water vs Fire/Rock defender: 2.0 * 2.0 = 4.0
-- Fire vs Water/Ground defender: 0.5 * 1.0 = 0.5
-
----
-
-## Files Affected
-
-### Core Game Logic (must change)
-| File | Change Description |
-|------|-------------------|
-| `src/elements_rpg/monsters/models.py` | Update Element enum (5 -> 10); add `types` field to MonsterSpecies as `tuple[Element, Element \| None]`; keep deprecated `element` property for backward compat |
-| `src/elements_rpg/combat/damage_calc.py` | Replace ELEMENT_CHART with 10x10 matrix; update `get_element_multiplier()` for dual-type defenders; update STAB for dual-typed attackers |
-| `src/elements_rpg/skills/progression.py` | No structural change (Skill already has `element: Element` field) -- just needs to work with new enum values |
-
-### Content Definitions (must change)
-| File | Change Description |
-|------|-------------------|
-| `src/elements_rpg/monsters/bestiary.py` | Reassign all 12 monsters to new elements; some get dual types; update `element` -> `types` field |
-| `src/elements_rpg/monsters/skill_catalog.py` | Reassign all skills from earth/fire/water to appropriate new elements (grass/ground/rock/ice/etc.) |
-| `src/elements_rpg/monsters/skill_catalog_extended.py` | Reassign wind/neutral skills to wind/dark/light/electric/ice |
-| `src/elements_rpg/economy/areas.py` | No element references in area definitions (monsters referenced by ID) -- likely no change |
-
-### API / Service Layer (may change)
-| File | Change Description |
-|------|-------------------|
-| `src/elements_rpg/services/monster_service.py` | Update response serialization (line ~297 exposes `species.element.value`) to expose `types` |
-| `src/elements_rpg/services/combat_service.py` | No direct element references -- delegates to CombatManager/damage_calc |
-| `src/elements_rpg/db/models/monster.py` | No change needed (stores species_id, not element directly) |
-| `src/elements_rpg/db/converters.py` | Update if it maps element fields |
-
-### Save/Load
-| File | Change Description |
-|------|-------------------|
-| `src/elements_rpg/save_load.py` | Bump SAVE_FORMAT_VERSION to 2; add migration logic for v1 saves (map old elements to new) |
-
-### Tests (~86 files reference Element)
-| Category | Key Test Files |
-|----------|---------------|
-| Core | `combat/tests/test_damage_calc.py`, `monsters/tests/test_models.py`, `monsters/tests/test_bestiary.py` |
-| Content | `monsters/tests/test_skill_catalog.py` |
-| API | `api/tests/test_monsters.py`, `api/tests/test_combat.py`, `api/tests/test_e2e.py` |
-| Services | `services/tests/test_combat_service.py` |
-
----
-
-## Monster Redesign Plan (12 monsters -> new elements + dual types)
-
-### Area 1: Verdant Meadows
-
-| Monster | Old Element | New Types | Rationale |
-|---------|------------|-----------|-----------|
-| Leaflet | Earth | Grass | Plant monster, pure grass |
-| Ember Pup | Fire | Fire | Stays pure fire |
-| Breeze Sprite | Wind | Wind / Light | Sprite with light affinity |
-| Pebble Crab | Earth | Rock / Ground | Crab with shell = rock, lives on ground |
-| Dewdrop Slime | Water | Water | Stays pure water |
-| Meadow Fox | Wind | Wind / Electric | Fast fox with electric speed |
-
-### Area 2: Crystal Caverns
-
-| Monster | Old Element | New Types | Rationale |
-|---------|------------|-----------|-----------|
-| Crystal Bat | Wind | Dark / Wind | Cave bat, dark affinity |
-| Magma Wyrm | Fire | Fire / Ground | Magma = fire + ground |
-| Aqua Serpent | Water | Water / Ice | Deep water serpent with ice |
-| Shadow Moth | Neutral | Dark | Pure dark creature |
-| Geo Golem | Earth | Rock / Ground | Golem = rock + ground |
-| Prism Fairy | Neutral | Light | Pure light creature |
-
-**Dual-type count**: 6 single-typed, 6 dual-typed (balanced mix)
-
----
-
-## Skill Reassignment Plan (28 skills)
-
-### Old Earth Skills -> Grass / Ground / Rock
-
-| Skill | Old Element | New Element | Rationale |
-|-------|-----------|-------------|-----------|
-| Vine Whip | Earth | Grass | Plant-based attack |
-| Root Bind | Earth | Grass | Plant roots |
-| Leaf Shield | Earth | Grass | Leaf-based defense |
-| Nature Heal | Earth | Grass | Nature/plant healing |
-| Rock Slam | Earth | Rock | Rock-based attack |
-| Stone Wall | Earth | Rock | Stone defense |
-| Earthquake | Earth | Ground | Ground-shaking AoE |
-| Fortify | Earth | Rock | Hardening defense |
-
-### Old Fire Skills -> Fire (mostly unchanged)
-
-| Skill | Old Element | New Element | Rationale |
-|-------|-----------|-------------|-----------|
-| Flame Bite | Fire | Fire | No change |
-| Fire Blast | Fire | Fire | No change |
-| Ember Shield | Fire | Fire | No change |
-| Heat Wave | Fire | Fire | No change |
-| Molten Fury | Fire | Fire | No change |
-| Flame Dash | Fire | Fire | No change |
-
-### Old Water Skills -> Water / Ice
-
-| Skill | Old Element | New Element | Rationale |
-|-------|-----------|-------------|-----------|
-| Aqua Jet | Water | Water | No change |
-| Healing Mist | Water | Water | No change |
-| Tidal Wave | Water | Water | No change |
-| Bubble Armor | Water | Water | No change |
-| Hydro Cannon | Water | Water | No change |
-
-### Old Wind Skills -> Wind (unchanged)
-
-| Skill | Old Element | New Element | Rationale |
-|-------|-----------|-------------|-----------|
-| Gust Slash | Wind | Wind | No change |
-| Tailwind Boost | Wind | Wind | No change |
-| Sonic Screech | Wind | Wind | No change |
-| Cyclone | Wind | Wind | No change |
-
-### Old Neutral Skills -> Dark / Light
-
-| Skill | Old Element | New Element | Rationale |
-|-------|-----------|-------------|-----------|
-| Shadow Bolt | Neutral | Dark | Shadow = dark |
-| Confuse Dust | Neutral | Dark | Disorienting = dark |
-| Prismatic Beam | Neutral | Light | Prismatic light |
-| Aura Pulse | Neutral | Light | Healing aura = light |
-| Life Drain | Neutral | Dark | Life drain = dark |
-
-**Note**: No skills for Electric or Ice in MVP. New skills can be added in a future phase, or existing monsters with Electric/Ice typing will rely on STAB-less coverage moves for now.
+### Out of Scope (explicitly skipped)
+- Animations, particle effects, sound, music
+- Taming, crafting, idle systems, life skills, action queue
+- Team management (combat fallback creates a starter team)
+- Premium/subscription/ads
+- Real monster art (use colored rectangles with element label)
+- OAuth / magic links (email+password only)
+- CI-based Unity builds (manual build for PoC)
 
 ---
 
 ## Tasks
 
-### Phase 1: Core Type System (models + damage calc)
+### Phase 0 -- Day-One Validation (empty build -> Vercel)
+**Goal**: Prove that an empty Unity WebGL project builds and deploys to Vercel before writing any game code. Catches IL2CPP, stripping, and hosting issues immediately.
 
-**Goal**: Update the Element enum, effectiveness matrix, damage calculation, and dual-type support at the model level. All existing tests must be updated to pass with new elements.
+- [x] `user` | **T0.1** Install Unity 6 LTS (6000.0) via Unity Hub with WebGL Build Support module | complete
+- [x] `user` | **T0.2** Create Unity project at `ElementsRPG/` folder -- 2D Core template, Company Name "ElementsRPG", Product Name "ElementsRPG" | complete
+- [x] `user` | **T0.3** Configure Player Settings for WebGL -- Managed Stripping Level "Minimal", Compression "Brotli", IL2CPP Code Gen "Faster (Smaller) Builds", Decompression Fallback OFF, Name Files As Hashes ON, Enable Exceptions "Explicitly Thrown Only" | complete
+- [x] `implementation-agent` | **T0.4** Add `Assets/link.xml` to protect Newtonsoft.Json from IL2CPP stripping | complete
+- [x] `implementation-agent` | **T0.5** Add `com.unity.nuget.newtonsoft-json` package via Packages/manifest.json | complete
+- [x] `implementation-agent` | **T0.6** Add Unity-specific entries to root `.gitignore` | complete
+- [x] `implementation-agent` | **T0.7** Update `vercel.json` -- add `"outputDirectory": "webgl-build"` field | complete
+- [ ] `user` | **T0.8** Build WebGL to `webgl-build/`, commit, push, verify Vercel deploys and Unity splash loads | pending
 
-- [x] **Task 1.1** | Update `Element` enum in `models.py` -- replace 5 values with 10 new ones (WATER, FIRE, GRASS, ELECTRIC, WIND, GROUND, ROCK, DARK, LIGHT, ICE). Remove EARTH and NEUTRAL.
-- [x] **Task 1.2** | Add dual-typing support to `MonsterSpecies` -- add `types: tuple[Element, Element | None]` field. Keep `element` as a computed property returning `types[0]` for backward compatibility during transition.
-- [x] **Task 1.3** | Update `Monster` model -- ensure `effective_stats()`, `max_hp()`, and other methods work with dual-typed species. No stat changes needed.
-- [x] **Task 1.4** | Create full 10x10 effectiveness matrix in `damage_calc.py` -- replace `ELEMENT_CHART` dict with the matrix defined above. Include the Ground immunity to Electric (0.0).
-- [x] **Task 1.5** | Update `get_element_multiplier()` to accept optional second defender type -- signature becomes `get_element_multiplier(attack_element, defender_types)`. For dual-typed defenders, multiply both matchups.
-- [x] **Task 1.6** | Update `calculate_damage()` -- pass both defender types to `get_element_multiplier()`. Update STAB to grant 1.5x if skill element matches EITHER of the attacker's types.
-- [x] **Task 1.7** | Write comprehensive tests for type effectiveness -- test dual-type multiplication (4x, 1x, 0x edge cases), test STAB with dual-typed attackers, immunity tests. All 1079 tests passing.
-
-**Dependencies**: None. This is the foundation.
-
-**Success Criteria**: `Element` enum has 10 values. `MonsterSpecies` supports 1-2 types. Damage calc handles dual-type defenders and dual-type STAB. All new matchup tests pass.
-
-**Files Changed**:
-- `src/elements_rpg/monsters/models.py`
-- `src/elements_rpg/combat/damage_calc.py`
-- `src/elements_rpg/combat/tests/test_damage_calc.py`
-- `src/elements_rpg/monsters/tests/test_models.py`
+**Parallelizable**: T0.2-T0.6 in one agent pass. T0.7 independent.
 
 ---
 
-### Phase 2: Content Update (bestiary + skills)
+### Phase 1 -- Backend Preparation
+**Goal**: Update CORS config so the WebGL client can reach the backend.
 
-**Goal**: Reassign all 12 monsters and 28 skills to the new element system. Some monsters gain dual types.
+- [x] `implementation-agent` | **T1.1** Add `http://localhost:5500` to default CORS origins in `src/elements_rpg/api/config.py` | complete
+- [ ] `user` | **T1.2** Add Vercel deployment URL to `ELEMENTS_CORS_ORIGINS` env var on Render dashboard | pending
+- [x] `research-agent` | **T1.3** Verify API contract: confirm health, auth, save, combat, monster endpoints match plan's Scene->API Mapping | complete
 
-- [x] **Task 2.1** | Update all 12 monster species in `bestiary.py` -- change `element=` to `types=` per the monster redesign table above. 6 single-typed, 6 dual-typed.
-- [x] **Task 2.2** | Update Earth skills in `skill_catalog.py` -- reassign to Grass, Rock, or Ground per the skill reassignment table.
-- [x] **Task 2.3** | Update Neutral skills in `skill_catalog_extended.py` -- reassign to Dark or Light per the skill reassignment table.
-- [x] **Task 2.4** | Update Wind and remaining skill categorization comments/headers in both catalog files.
-- [x] **Task 2.5** | Verify all monsters' `learnable_skill_ids` still make sense -- ensure dual-typed monsters have skill coverage for at least one of their types (STAB). Adjust learnable lists if needed.
-- [x] **Task 2.6** | Update `economy/areas.py` if any element references exist (likely no change, but verify). Verified: no element references.
-- [x] **Task 2.7** | Write/update tests -- `test_bestiary.py` (verify all 12 monsters have valid types from new enum), `test_skill_catalog.py` (verify all 28 skills have valid elements). Add tests asserting specific type assignments match the plan.
-
-**Dependencies**: Phase 1 complete (new Element enum and dual-type MonsterSpecies exist).
-
-**Success Criteria**: All 12 monsters have correct new types (6 dual-typed). All 28 skills have correct new elements. No skill references an element that doesn't exist. All bestiary and skill catalog tests pass.
-
-**Files Changed**:
-- `src/elements_rpg/monsters/bestiary.py`
-- `src/elements_rpg/monsters/skill_catalog.py`
-- `src/elements_rpg/monsters/skill_catalog_extended.py`
-- `src/elements_rpg/monsters/tests/test_bestiary.py`
-- `src/elements_rpg/monsters/tests/test_skill_catalog.py`
-- `src/elements_rpg/economy/areas.py` (verify only)
+**Parallelizable**: T1.1 and T1.3 in parallel. T1.2 is manual.
 
 ---
 
-### Phase 3: Save/Load Compatibility + API Integration
+### Phase 2 -- C# Foundation (API Client + Models)
+**Goal**: Build the HTTP client layer and C# data models. Test in Unity Editor against local backend.
 
-**Goal**: Ensure old saves (v1) with old elements can be loaded and migrated. Update API responses to expose dual typing.
+- [x] `implementation-agent` | **T2.1** Create `GameConfig.cs` -- singleton, loads `StreamingAssets/config.json`, exposes `ApiBaseUrl` | complete
+- [x] `implementation-agent` | **T2.2** Create `StreamingAssets/config.json` with `{ "apiBaseUrl": "http://localhost:8000" }` | complete
+- [x] `implementation-agent` | **T2.3** Create `ApiModels.cs` -- all serializable C# data classes for API communication | complete
+- [x] `implementation-agent` | **T2.4** Create `ApiClient.cs` -- UnityWebRequest + coroutines, auth header injection, 401 retry with token refresh | complete
+- [x] `implementation-agent` | **T2.5** Create `AuthManager.cs` -- singleton, register/login/refresh/logout, PlayerPrefs JWT storage | complete
+- [x] `implementation-agent` | **T2.6** Create `SaveApi.cs` -- LoadSave, CreateNewSave, SaveGame wrappers | complete
+- [x] `implementation-agent` | **T2.7** Create `CombatApi.cs` -- StartCombat, ExecuteRound, FinishCombat wrappers | complete
+- [x] `implementation-agent` | **T2.8** Create `MonsterApi.cs` -- GetBestiary, GetOwnedMonsters wrappers | complete
+- [x] `implementation-agent` | **T2.9** Create `EconomyApi.cs` -- GetBalance wrapper | complete
 
-- [x] **Task 3.1** | Bump `SAVE_FORMAT_VERSION` to 2 in `save_load.py`.
-- [x] **Task 3.2** | Add v1 -> v2 migration logic in `save_load.py` -- when loading a v1 save, map old element values: `earth` -> `grass` (default), `neutral` -> `dark` (default). Handles both old `element` field and `types` field with old values.
-- [x] **Task 3.3** | Update `deserialize_save()` and `load_from_dict()` to detect version and apply migration before validation.
-- [x] **Task 3.4** | Update `monster_service.py` -- `_enrich_monster_row` now exposes `types` as a list (e.g., `["fire", "ground"]`) alongside backward-compat `element` field.
-- [x] **Task 3.5** | Update `db/converters.py` if it references element fields. Verified: no element field references, stores species_id only.
-- [x] **Task 3.6** | Update `combat_service.py` if any element-specific logic exists. Verified: no element-specific logic, delegates to CombatManager.
-- [x] **Task 3.7** | Write save/load migration tests -- 12 new tests covering v1 migration (earth->grass, neutral->dark, fire/water/wind unchanged, multiple monsters, empty saves, full round-trip via deserialize_save and load_from_dict, no double-migration of v2 saves, types field remapping).
-
-**Dependencies**: Phase 2 complete (all content updated to new elements).
-
-**Success Criteria**: Old v1 saves load successfully with correct element migration. API responses expose `types` array instead of single `element`. Save roundtrip works. No data loss on migration.
-
-**Files Changed**:
-- `src/elements_rpg/save_load.py`
-- `src/elements_rpg/services/monster_service.py`
-- `src/elements_rpg/db/converters.py`
-- `src/elements_rpg/tests/test_save_load.py`
-- `src/elements_rpg/api/tests/test_monsters.py`
+**Dependencies**: T2.4 depends on T2.1+T2.3. T2.5 depends on T2.4. T2.6-T2.9 depend on T2.4+T2.5 but are independent of each other.
 
 ---
 
-### Phase 4: Full Test Suite Repair + E2E Validation
+### Phase 3 -- Scenes and UI
+**Goal**: Build the 4 scenes with functional UI connected to the API layer.
 
-**Goal**: Fix all remaining broken tests across the entire codebase. Run E2E combat tests with dual-typed monsters.
+- [x] `implementation-agent` | **T3.1** Create `SceneData.cs` -- static class for cross-scene state (RawSaveJson, CurrentSave, SaveVersion, LastCombatResult) | complete
+- [x] `implementation-agent` | **T3.2** Create Login scene + `LoginController.cs` -- email/password fields, sign in/up buttons, error display, auto-skip if already logged in | complete
+- [x] `implementation-agent` | **T3.3** Create `MonsterListItem.prefab` + `MonsterListItem.cs` -- colored element square, name, level, type label | complete
+- [x] `implementation-agent` | **T3.4** Create Home scene + `HomeController.cs` -- load save, monster scroll list, player info header, start combat button, logout | complete
+- [x] `implementation-agent` | **T3.5** Create Combat scene + `CombatController.cs` -- HP bars, combat log, next round button, auto-finish flow | complete
+- [x] `implementation-agent` | **T3.6** Create Results scene + `ResultsController.cs` -- victory/defeat, rewards display, continue button triggers save | complete
+- [x] `implementation-agent` | **T3.7** Add all 4 scenes to Build Settings (Login=0, Home=1, Combat=2, Results=3) | complete
 
-- [x] **Task 4.1** | Fix all failing tests that reference old Element values (EARTH, NEUTRAL) -- grep for `Element.EARTH`, `Element.NEUTRAL`, `"earth"`, `"neutral"` across all test files and update. Verified: no old references in production code; save_load references are intentional migration logic.
-- [x] **Task 4.2** | Update `combat/tests/test_manager.py` -- ensure combat tests use new elements and test dual-type combat scenarios. Already updated in Phase 1.
-- [x] **Task 4.3** | Update `combat/tests/test_strategy.py` -- fix any element-dependent strategy tests. Already updated in Phase 1.
-- [x] **Task 4.4** | Update API tests (`test_combat.py`, `test_e2e.py`, `test_taming.py`, `test_saves.py`) -- fix element references in test fixtures and assertions. All passing.
-- [x] **Task 4.5** | Update `services/tests/test_combat_service.py` -- fix service-level combat tests. All passing.
-- [x] **Task 4.6** | Create E2E combat test with dual-typed monsters -- 9 new tests: 4x damage, cancel-out, immunity, dual-type immunity, primary STAB, secondary STAB, no STAB, Dark vs Light, Light vs Dark.
-- [x] **Task 4.7** | Run full test suite: 1100 tests passing, zero failures. Ruff lint clean. Ruff format clean.
-
-**Dependencies**: Phase 3 complete (all production code updated).
-
-**Success Criteria**: Full test suite passes (1068+ tests). Ruff lint clean. Ruff format clean. E2E combat with dual types validated. No regressions.
-
-**Files Changed**:
-- All test files referencing Element values (~20+ files)
-- `src/elements_rpg/combat/tests/test_manager.py`
-- `src/elements_rpg/combat/tests/test_damage_calc.py`
-- `src/elements_rpg/api/tests/test_e2e.py`
-- Various other test files
+**Dependencies**: T3.1 first. T3.2+T3.3 parallel. T3.4 depends on T3.3. T3.5+T3.6 depend on T3.1. T3.7 last.
 
 ---
 
-## Blockers
+### Phase 4 -- WebGL Build and Deploy
+**Goal**: Produce a working WebGL build, deploy to Vercel, verify full flow in browser.
 
-| Blocker | Phase | Impact | Resolution |
-|---------|-------|--------|------------|
-| None currently identified | -- | -- | -- |
+- [ ] `user` | **T4.1** Update `config.json` with production API URL (Render backend URL) | pending
+- [ ] `user` | **T4.2** Build WebGL to `webgl-build/` folder | pending
+- [ ] `user` | **T4.3** Test locally with `npx serve webgl-build` | pending
+- [ ] `user` | **T4.4** Commit and push -- enable Git LFS if needed for large .wasm/.data files | pending
+- [ ] `user` | **T4.5** Smoke test on Vercel: register, view monsters, combat, results, persistence | pending
 
 ---
 
-## Architecture Decisions
+## Scene -> API Mapping
 
-| Decision | Rationale |
-|----------|-----------|
-| Replace `element` field with `types` tuple | Dual typing requires 1-2 elements per monster. A tuple of `(Element, Element \| None)` is the simplest representation. Keep `element` as backward-compat property. |
-| Multiply dual-type matchups (not additive) | Follows Pokemon-style precedent: 2x * 2x = 4x for double weakness, 2x * 0.5x = 1x for offset. Creates meaningful strategic depth. |
-| Only 1 immunity (Ground immune to Electric) | Immunities are powerful. Starting with just 1 keeps things balanced while adding strategic interest. More can be added later. |
-| Map old elements in save migration, not per-field | Monsters reference species by ID, so migrating means looking up the new bestiary definition rather than mapping element values per-monster. Saves store species_id, and the species definition (in code) already has the correct new types. |
-| No new Electric/Ice skills in this phase | Keep scope focused on the type system redesign. Electric/Ice typed monsters can use coverage moves. New skills can be added in a follow-up phase. |
-| Dark/Light are symmetric | Each super effective against the other, each resists itself. Simple and intuitive for players. |
+### Login Scene
+| Action | Method | Endpoint | Auth | Body | Key Response |
+|--------|--------|----------|------|------|-------------|
+| Sign Up | POST | `/auth/register` | No | `{ email, password, username }` | `access_token, refresh_token, user.id` |
+| Sign In | POST | `/auth/login` | No | `{ email, password }` | `access_token, refresh_token, user.id` |
+
+### Home Scene
+| Action | Method | Endpoint | Auth | Body | Key Response |
+|--------|--------|----------|------|------|-------------|
+| Load save | GET | `/saves/` | Yes | -- | Full `GameSaveData` JSON |
+| New save | POST | `/saves/new` | Yes | -- | Fresh default `GameSaveData` |
+
+### Combat Scene
+| Action | Method | Endpoint | Auth | Body | Key Response |
+|--------|--------|----------|------|------|-------------|
+| Start | POST | `/combat/start` | Yes | `{ enemy_species_ids, enemy_level }` | `session_id, state` |
+| Round | POST | `/combat/{id}/round` | Yes | -- | `state, actions[]` |
+| Finish | POST | `/combat/{id}/finish` | Yes | -- | `winner, rewards` |
+
+### Results Scene
+| Action | Method | Endpoint | Auth | Body | Key Response |
+|--------|--------|----------|------|------|-------------|
+| Save | POST | `/saves/` | Yes | `{ save_data, expected_version }` | `success, version` |
+
+### Background (401 handling)
+| Action | Method | Endpoint | Auth | Body | Key Response |
+|--------|--------|----------|------|------|-------------|
+| Refresh | POST | `/auth/refresh` | No | `{ refresh_token }` | `access_token, refresh_token` |
+
+**Total: 9 endpoints** (out of 65+)
+
+---
+
+## C# Script Inventory
+
+### Config (`Assets/Scripts/Config/`)
+| Script | Purpose |
+|--------|---------|
+| `GameConfig.cs` | Singleton. Loads StreamingAssets/config.json. Provides ApiBaseUrl. |
+
+### Models (`Assets/Scripts/Models/`)
+| Script | Purpose |
+|--------|---------|
+| `ApiModels.cs` | All serializable C# classes: ApiResponse<T>, AuthRequest/Response, MonsterSpecies, MonsterInstance, PlayerData, GameSaveData, CombatStartRequest/Response, CombatState, CombatMonster, CombatAction, CombatRoundResponse, CombatFinishResponse, CombatRewards, BalanceResponse, SaveRequest/Response |
+
+### API (`Assets/Scripts/API/`)
+| Script | Purpose |
+|--------|---------|
+| `ApiClient.cs` | UnityWebRequest + coroutines, auth header, 401 retry |
+| `AuthManager.cs` | Singleton. Register/login/refresh/logout. PlayerPrefs JWT storage. |
+| `SaveApi.cs` | LoadSave, CreateNewSave, SaveGame |
+| `CombatApi.cs` | StartCombat, ExecuteRound, FinishCombat |
+| `MonsterApi.cs` | GetBestiary, GetOwnedMonsters |
+| `EconomyApi.cs` | GetBalance |
+
+### UI (`Assets/Scripts/UI/`)
+| Script | Purpose |
+|--------|---------|
+| `SceneData.cs` | Static cross-scene state bus |
+| `LoginController.cs` | Login scene controller |
+| `HomeController.cs` | Home scene controller |
+| `MonsterListItem.cs` | Monster row prefab controller |
+| `CombatController.cs` | Combat scene controller |
+| `ResultsController.cs` | Results scene controller |
+
+---
+
+## Element Color Map
+
+| Element | Hex | RGB (Unity) |
+|---------|-----|-------------|
+| water | #3B82F6 | (0.23, 0.51, 0.96) |
+| fire | #EF4444 | (0.94, 0.27, 0.27) |
+| grass | #22C55E | (0.13, 0.77, 0.37) |
+| electric | #EAB308 | (0.92, 0.70, 0.03) |
+| wind | #A3E635 | (0.64, 0.90, 0.21) |
+| ground | #92400E | (0.57, 0.25, 0.05) |
+| rock | #78716C | (0.47, 0.44, 0.42) |
+| dark | #6B21A8 | (0.42, 0.13, 0.66) |
+| light | #FDE047 | (0.99, 0.88, 0.28) |
+| ice | #67E8F9 | (0.40, 0.91, 0.98) |
+
+---
+
+## GameSaveData Passthrough Strategy
+
+The full GameSaveData JSON contains many fields the PoC doesn't display. Strategy:
+1. **On load**: Parse full response into Newtonsoft `JObject`. Extract `player` and `monsters` into typed C# objects. Store entire blob as `SceneData.RawSaveJson`.
+2. **On save**: Send stored raw JSON back as `save_data`. No data loss on untouched fields.
+3. **Why it works**: Combat rewards are applied server-side by `/combat/finish`. Save data is already current.
+
+---
+
+## Blockers / User Decisions Required
+
+| Item | Type | Impact | Needed Before |
+|------|------|--------|---------------|
+| Unity 6 LTS installed with WebGL module? | User confirmation | Cannot build without it | T0.1 |
+| Render backend URL | User must provide | Required for config.json and CORS | T1.2, T4.1 |
+| Vercel deployment URL | User must provide | Required for CORS on Render | T1.2 |
+| Supabase project running? | User confirmation | Backend needs it for auth | T1.2 |
+| Git LFS for WebGL build artifacts? | User decision | .wasm/.data may be 10-30MB | T4.4 |
+| Folder rename ElementsRPG -> unity | Permission denied (2026-03-06) | Cosmetic only; proceeding with `ElementsRPG/` | N/A |
+
+---
+
+## link.xml Contents
+
+```xml
+<linker>
+  <assembly fullname="Newtonsoft.Json" preserve="all"/>
+  <assembly fullname="System.Runtime.Serialization" preserve="all"/>
+</linker>
+```
+
+---
+
+## Risk Assessment
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| Newtonsoft.Json stripped by IL2CPP | Medium | All API calls fail | link.xml + Minimal stripping + Phase 0 validation |
+| CORS blocks Vercel->Render | High if forgotten | All API calls fail | Explicit CORS tasks in Phase 1 |
+| Combat session lost on backend restart | Low | 404 mid-combat | CombatController shows error, returns to Home |
+| Token expires during play | Low | 401 on next call | ApiClient auto-refreshes and retries |
+| GameSaveData schema mismatch | Medium | Save/load fails | Passthrough strategy for unused fields |
 
 ---
 
 ## Progress Log
 
-| Date | Phase | Tasks Completed | Notes |
-|------|-------|-----------------|-------|
-| 2026-03-05 | -- | Plan created | 4 phases, 28 tasks, 10 elements, dual typing, full effectiveness matrix |
-| 2026-03-05 | Phase 1 | Tasks 1.1-1.7 complete | 10 elements, dual typing, effectiveness matrix, damage calc updated. Also updated bestiary (12 monsters) and skill catalogs (28 skills) to new elements. 1079 tests passing. |
-| 2026-03-05 | Phase 2 | Tasks 2.1-2.7 complete | Content verified: all 12 monsters use new elements (6 dual-typed), all 28 skills use valid elements, no EARTH/NEUTRAL references remain. Areas have no element refs. |
-| 2026-03-05 | Phase 3 | Tasks 3.1-3.7 complete | Save version bumped to 2. V1->V2 migration (earth->grass, neutral->dark). API exposes `types` array. 12 new migration tests. 1091 tests passing. |
-| 2026-03-05 | Phase 4 | Tasks 4.1-4.7 complete | 9 new E2E dual-type combat tests. All old element refs verified clean. 1100 tests passing. Ruff lint/format clean. PROJECT COMPLETE. |
-
----
-
-## Notes
-
-- The `element` field on `MonsterSpecies` is used in ~86 files. The backward-compat property on MonsterSpecies will minimize churn -- most code accessing `species.element` will continue to work (returns primary type).
-- The damage_calc.py change is the most critical -- it's the only place where type effectiveness is evaluated at runtime.
-- STAB (Same Type Attack Bonus) must check BOTH types of the attacker for dual-typed monsters.
-- The save migration is simple because monsters in saves reference species by ID. When the game loads, it looks up the species from the bestiary (which will have the new types). The only risk is if old saves stored the element value directly -- `GameSaveData.monsters` stores full `Monster` objects with embedded `MonsterSpecies`, so the migration must update the embedded species data.
-- Electric and Ice have no dedicated skills yet. This is intentional scope limitation. Dual-typed monsters like Meadow Fox (Wind/Electric) get STAB on Wind moves but not Electric. Future work can add Electric/Ice skills.
+| Timestamp | Agent | Task | Status | Notes |
+|-----------|-------|------|--------|-------|
+| 2026-03-05 | research-agent | API surface research | complete | 65+ endpoints cataloged, 9 needed for PoC |
+| 2026-03-05 | research-agent | Unity WebGL research | complete | Coroutines, Newtonsoft, UGUI, Unity 6 LTS |
+| 2026-03-05 | planning-agent | Plan created | complete | 28 tasks across 5 phases |
+| 2026-03-06 | implementation-agent | T0.6 Update .gitignore | complete | Added Unity-specific ignore entries under # Unity header |
+| 2026-03-06 | implementation-agent | T0.7 Update vercel.json | complete | Added outputDirectory: webgl-build top-level field |
+| 2026-03-06 | implementation-agent | T1.1 Update CORS config | complete | Added http://localhost:5500 to default cors_origins |
+| 2026-03-06 | implementation-agent | T0.4 Add link.xml | complete | Created ElementsRPG/Assets/link.xml preserving Newtonsoft.Json and System.Runtime.Serialization |
+| 2026-03-06 | implementation-agent | T0.5 Add Newtonsoft.Json package | complete | Added com.unity.nuget.newtonsoft-json 3.2.1 to manifest.json |
+| 2026-03-06 | implementation-agent | Fix .gitignore paths | complete | Replaced unity/ prefixes with ElementsRPG/ to match actual project folder |
+| 2026-03-06 | implementation-agent | T2.1 Create GameConfig.cs | complete | Singleton MonoBehaviour with DontDestroyOnLoad, loads config.json via UnityWebRequest, falls back to localhost:8000 |
+| 2026-03-06 | implementation-agent | T2.2 Create config.json | complete | StreamingAssets/config.json with apiBaseUrl default |
+| 2026-03-06 | implementation-agent | T2.3 Create ApiModels.cs | complete | 23 serializable C# classes with JsonProperty attributes, GameSaveData uses JsonExtensionData for round-trip preservation |
+| 2026-03-06 | implementation-agent | T2.4 Create ApiClient.cs | complete | Singleton MonoBehaviour, Get/Post/PostNoBody generic methods, auth header injection, 401 auto-refresh + retry, ApiResponse envelope unwrapping, error parsing |
+| 2026-03-06 | implementation-agent | T2.5 Create AuthManager.cs | complete | Singleton MonoBehaviour, Login/Register/RefreshToken/Logout, PlayerPrefs JWT persistence, PostAuth shared helper |
+| 2026-03-06 | implementation-agent | T2.6 Create SaveApi.cs | complete | Static class, LoadSave (JObject passthrough), CreateNewSave, SaveGame with optimistic locking |
+| 2026-03-06 | implementation-agent | T2.7 Create CombatApi.cs | complete | Static class, StartCombat/ExecuteRound/FinishCombat wrapping ApiClient |
+| 2026-03-06 | implementation-agent | T2.8 Create MonsterApi.cs | complete | Static class, GetBestiary (public) and GetOwnedMonsters (auth) |
+| 2026-03-06 | implementation-agent | T2.9 Create EconomyApi.cs | complete | Static class, GetBalance wrapper |
+| 2026-03-06 | research-agent | T1.3 Verify API contract | complete | 9/9 endpoints exist and match plan. 8/9 use standard SuccessResponse envelope. 1 discrepancy: POST /saves/ returns SaveConfirmation directly (no `data` wrapper) -- Unity SaveApi must handle flat response shape. |
+| 2026-03-06 | implementation-agent | T3.1 Create SceneData.cs | complete | Static class with RawSaveData (JObject), CurrentPlayer, CurrentMonsters, SaveVersion, LastCombatResult, Clear() |
+| 2026-03-06 | implementation-agent | T3.2 Create LoginController.cs | complete | Login/register toggle, input validation, auto-skip if logged in, waits for GameConfig.IsReady, error auto-hide |
+| 2026-03-06 | implementation-agent | T3.3 Create MonsterListItem.cs | complete | Element color map (10 elements), Setup() populates name/level/type with colored icon and text |
+| 2026-03-06 | implementation-agent | T3.4 Create HomeController.cs | complete | Loads save (auto-creates on 404), populates monster scroll list, fetches balance, combat/logout buttons |
+| 2026-03-06 | implementation-agent | T3.5 Create CombatController.cs | complete | Full combat flow: start session, advance rounds, HP bars, combat log with scroll, finish + transition to Results |
+| 2026-03-06 | implementation-agent | T3.6 Create ResultsController.cs | complete | Victory/defeat display, rewards, save on continue with optimistic locking, graceful save failure handling |
+| 2026-03-06 | implementation-agent | T3.7 ProjectSetup.cs editor script | complete | Auto-creates all 4 scenes (Login, Home, Combat, Results), MonsterListItem prefab, singletons (GameConfig, ApiClient, AuthManager), wires all serialized fields via SerializedObject, configures Build Settings |
+| 2026-03-06 | user | T0.1 Install Unity 6 LTS | complete | Unity 6 LTS installed with WebGL Build Support module |
+| 2026-03-06 | user | T0.2 Create Unity project | complete | Created Unity project at ElementsRPG/ folder |
+| 2026-03-06 | user | T0.3 Configure Player Settings | complete | WebGL Player Settings configured during project creation |

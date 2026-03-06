@@ -32,3 +32,17 @@ wheels/
 .claude/
 .cursor/
 CLAUDE.md
+
+# Unity
+ElementsRPG/Library/
+ElementsRPG/Temp/
+ElementsRPG/obj/
+ElementsRPG/Logs/
+ElementsRPG/UserSettings/
+ElementsRPG/MemoryCaptures/
+ElementsRPG/*.csproj
+ElementsRPG/*.sln
+ElementsRPG/.vs/
+
+# WebGL build (comment out if using Git LFS)
+# webgl-build/
