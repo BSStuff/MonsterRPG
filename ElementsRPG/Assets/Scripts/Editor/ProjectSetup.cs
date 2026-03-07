@@ -187,7 +187,7 @@ public static class ProjectSetup
         panelRT.anchorMin = new Vector2(0.5f, 0.5f);
         panelRT.anchorMax = new Vector2(0.5f, 0.5f);
         panelRT.pivot = new Vector2(0.5f, 0.5f);
-        panelRT.sizeDelta = new Vector2(400, 520);
+        panelRT.sizeDelta = new Vector2(400, 575);
         panelRT.anchoredPosition = Vector2.zero;
 
         var panelImg = loginPanel.AddComponent<Image>();
@@ -266,6 +266,15 @@ public static class ProjectSetup
         var toggleText = toggleModeBtn.GetComponentInChildren<TextMeshProUGUI>();
         toggleText.fontSize = 14;
 
+        // GuestButton — neutral grey, smaller height
+        var guestBtn = CreateButtonWithText(
+            loginPanel.transform, "GuestButton", "Continue as Guest", 40,
+            new Color(0.35f, 0.35f, 0.4f, 1f), new Color(0.45f, 0.45f, 0.5f, 1f));
+        var guestBtnLE = guestBtn.GetComponent<LayoutElement>();
+        if (guestBtnLE == null)
+            guestBtnLE = guestBtn.AddComponent<LayoutElement>();
+        guestBtnLE.preferredHeight = 40;
+
         // ErrorText (starts inactive)
         var errorGO = CreateTMPObject(loginPanel.transform, "ErrorText", "", 14,
             TextAlignmentOptions.Center, Color.red, FontStyles.Normal);
@@ -291,6 +300,8 @@ public static class ProjectSetup
             signUpBtn.GetComponent<Button>());
         SetPrivateField(loginCtrl, "toggleModeButton",
             toggleModeBtn.GetComponent<Button>());
+        SetPrivateField(loginCtrl, "guestButton",
+            guestBtn.GetComponent<Button>());
         SetPrivateField(loginCtrl, "errorText",
             errorGO.GetComponent<TextMeshProUGUI>());
         SetPrivateField(loginCtrl, "toggleModeText",

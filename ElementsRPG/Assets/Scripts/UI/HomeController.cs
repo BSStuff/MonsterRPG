@@ -39,6 +39,14 @@ public class HomeController : MonoBehaviour
     /// </summary>
     private IEnumerator LoadPlayerData()
     {
+        // Guest mode: data already populated by LoginController, skip API calls
+        if (AuthManager.Instance != null && AuthManager.Instance.IsGuest)
+        {
+            PopulateUI();
+            ConfigureGuestCombatButton();
+            yield break;
+        }
+
         statusText.gameObject.SetActive(true);
         statusText.text = "Loading...";
 
@@ -163,6 +171,22 @@ public class HomeController : MonoBehaviour
 
         startCombatButton.interactable = true;
         statusText.gameObject.SetActive(false);
+    }
+
+    /// <summary>
+    /// In guest mode, replaces the combat button with a prompt to sign in.
+    /// Combat requires server authentication, so guests cannot battle.
+    /// </summary>
+    private void ConfigureGuestCombatButton()
+    {
+        startCombatButton.GetComponentInChildren<TMP_Text>().text = "Sign in to Battle!";
+        startCombatButton.onClick.RemoveAllListeners();
+        startCombatButton.onClick.AddListener(() =>
+        {
+            AuthManager.Instance.Logout();
+            SceneData.Clear();
+            SceneManager.LoadScene("Login");
+        });
     }
 
     private void OnStartCombatClicked()

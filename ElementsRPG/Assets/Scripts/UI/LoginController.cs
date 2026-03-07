@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using UnityEngine.InputSystem;
 using TMPro;
 
 /// <summary>
@@ -21,6 +22,7 @@ public class LoginController : MonoBehaviour
     [SerializeField] private Button signInButton;
     [SerializeField] private Button signUpButton;
     [SerializeField] private Button toggleModeButton;
+    [SerializeField] private Button guestButton;
 
     [Header("Labels")]
     [SerializeField] private TMP_Text errorText;
@@ -61,6 +63,7 @@ public class LoginController : MonoBehaviour
         signInButton.onClick.AddListener(OnSignInClicked);
         signUpButton.onClick.AddListener(OnSignUpClicked);
         toggleModeButton.onClick.AddListener(OnToggleMode);
+        guestButton.onClick.AddListener(OnGuestClicked);
 
         // Initial UI state: login mode
         errorText.gameObject.SetActive(false);
@@ -84,7 +87,10 @@ public class LoginController : MonoBehaviour
         // Tab key: cycle focus between input fields
         // Login mode: email -> password -> (cycle)
         // Register mode: email -> password -> confirmPassword -> username -> (cycle)
-        if (Input.GetKeyDown(KeyCode.Tab))
+        var keyboard = Keyboard.current;
+        if (keyboard == null) return;
+
+        if (keyboard.tabKey.wasPressedThisFrame)
         {
             if (emailField.isFocused)
             {
@@ -125,7 +131,7 @@ public class LoginController : MonoBehaviour
         }
 
         // Enter key: submit the current form
-        if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
+        if (keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame)
         {
             if (isRegisterMode)
                 OnSignUpClicked();
@@ -171,6 +177,16 @@ public class LoginController : MonoBehaviour
         signInButton.gameObject.SetActive(!isRegisterMode);
         signUpButton.gameObject.SetActive(isRegisterMode);
         UpdateToggleModeText();
+    }
+
+    /// <summary>
+    /// Enters guest mode with local-only mock data and skips to Home.
+    /// </summary>
+    private void OnGuestClicked()
+    {
+        AuthManager.Instance.LoginAsGuest();
+        SceneData.CreateGuestData();
+        SceneManager.LoadScene("Home");
     }
 
     private void UpdateToggleModeText()
@@ -282,5 +298,6 @@ public class LoginController : MonoBehaviour
         signInButton.interactable = interactable;
         signUpButton.interactable = interactable;
         toggleModeButton.interactable = interactable;
+        guestButton.interactable = interactable;
     }
 }

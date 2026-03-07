@@ -69,10 +69,19 @@ public class ResultsController : MonoBehaviour
     private void OnContinueClicked()
     {
         continueButton.interactable = false;
+
+        // Skip saving for guests or when there is no save data
+        if ((AuthManager.Instance != null && AuthManager.Instance.IsGuest)
+            || SceneData.RawSaveData == null)
+        {
+            SceneManager.LoadScene("Home");
+            return;
+        }
+
         statusText.gameObject.SetActive(true);
         statusText.text = "Saving...";
 
-        string rawJson = SceneData.RawSaveData?.ToString();
+        string rawJson = SceneData.RawSaveData.ToString();
 
         if (rawJson == null)
         {

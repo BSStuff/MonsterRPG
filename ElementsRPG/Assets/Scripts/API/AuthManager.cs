@@ -23,8 +23,11 @@ public class AuthManager : MonoBehaviour
     /// <summary>Current refresh token, read from PlayerPrefs.</summary>
     public string RefreshTokenValue => PlayerPrefs.GetString(PrefKeyRefreshToken, null);
 
-    /// <summary>True if an access token is stored.</summary>
-    public bool IsLoggedIn => !string.IsNullOrEmpty(AccessToken);
+    /// <summary>True if in guest mode (no authentication, local data only).</summary>
+    public bool IsGuest { get; private set; }
+
+    /// <summary>True if an access token is stored or in guest mode.</summary>
+    public bool IsLoggedIn => IsGuest || !string.IsNullOrEmpty(AccessToken);
 
     private void Awake()
     {
@@ -36,6 +39,19 @@ public class AuthManager : MonoBehaviour
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
+    }
+
+    // ----------------------------------------------------------------
+    // Guest Login
+    // ----------------------------------------------------------------
+
+    /// <summary>
+    /// Enters guest mode. No tokens are stored; the player uses local-only data.
+    /// </summary>
+    public void LoginAsGuest()
+    {
+        IsGuest = true;
+        Debug.Log("[AuthManager] Logged in as guest (local-only mode).");
     }
 
     // ----------------------------------------------------------------
@@ -157,6 +173,7 @@ public class AuthManager : MonoBehaviour
     /// </summary>
     public void Logout()
     {
+        IsGuest = false;
         ClearTokens();
         Debug.Log("[AuthManager] Logged out. Tokens cleared.");
     }
