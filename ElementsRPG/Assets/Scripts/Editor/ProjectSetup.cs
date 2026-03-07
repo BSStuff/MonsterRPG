@@ -774,12 +774,12 @@ public static class ProjectSetup
         return go;
     }
 
-    /// <summary>Creates a standard EventSystem with StandaloneInputModule.</summary>
+    /// <summary>Creates a standard EventSystem with InputSystemUIInputModule (new Input System).</summary>
     private static GameObject CreateEventSystem()
     {
         var go = new GameObject("EventSystem");
         go.AddComponent<EventSystem>();
-        go.AddComponent<StandaloneInputModule>();
+        go.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
         return go;
     }
 
