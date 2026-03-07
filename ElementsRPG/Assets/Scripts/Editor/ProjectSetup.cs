@@ -1047,7 +1047,7 @@ public static class ProjectSetup
             scenes = scenes,
             locationPathName = buildPath,
             target = BuildTarget.WebGL,
-            options = BuildOptions.None
+            options = BuildOptions.Development
         });
 
         if (report.summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded)

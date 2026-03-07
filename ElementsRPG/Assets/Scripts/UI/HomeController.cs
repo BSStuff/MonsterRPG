@@ -127,20 +127,27 @@ public class HomeController : MonoBehaviour
             playerInfoText.text = "Player";
         }
 
-        // Fetch balance from economy endpoint
-        EconomyApi.GetBalance(
-            onSuccess: balance =>
-            {
-                balanceText.text = $"Gold: {balance.Gold} | Gems: {balance.Gems}";
-            },
-            onError: error =>
-            {
-                // Fallback: try to extract from save data
-                int gold = SceneData.RawSaveData?["economy"]?["gold"]?.Value<int>() ?? 0;
-                int gems = SceneData.RawSaveData?["economy"]?["gems"]?.Value<int>() ?? 0;
-                balanceText.text = $"Gold: {gold} | Gems: {gems}";
-            }
-        );
+        // Fetch balance — skip API call for guests
+        if (AuthManager.Instance != null && AuthManager.Instance.IsGuest)
+        {
+            balanceText.text = "Gold: 0 | Gems: 0";
+        }
+        else
+        {
+            EconomyApi.GetBalance(
+                onSuccess: balance =>
+                {
+                    balanceText.text = $"Gold: {balance.Gold} | Gems: {balance.Gems}";
+                },
+                onError: error =>
+                {
+                    // Fallback: try to extract from save data
+                    int gold = SceneData.RawSaveData?["economy"]?["gold"]?.Value<int>() ?? 0;
+                    int gems = SceneData.RawSaveData?["economy"]?["gems"]?.Value<int>() ?? 0;
+                    balanceText.text = $"Gold: {gold} | Gems: {gems}";
+                }
+            );
+        }
 
         // Clear existing monster list items
         for (int i = monsterListContent.childCount - 1; i >= 0; i--)
